@@ -1,11 +1,10 @@
-import functools
 import logging
 
 logger = logging.getLogger()
 fh = logging.FileHandler("files/message.log", mode='w')
 
 
-def log(text):
+def log(text=""):
     def decorator(func):
         def wrapper(*args, **kw):
             formatter = logging.Formatter("%(asctime)s %(clientip)-15s %(user)-8s %(message)s")

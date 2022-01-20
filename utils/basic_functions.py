@@ -23,7 +23,7 @@ def input_directory():
     return directory_list
 
 
-@log("11")
+@log()
 def show_directory_in_table(dict_list):
     if not dict_list:
         print("No individuals available.")
