@@ -1,4 +1,5 @@
 from utils.basic_functions import *
+from utils.logger import log
 
 if __name__ == '__main__':
     print("Welcome to the Online Chat!")

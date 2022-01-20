@@ -1,5 +1,7 @@
 import json
 
+from utils.logger import log
+
 
 def input_port():
     port = input("Please enter a port to incoming connections: ")
@@ -15,12 +17,13 @@ def input_port():
 def input_directory():
     directory_file = input("Please specify the directory of individuals to contact: ")
     if not directory_file:
-        directory_file = "directory.json"
+        directory_file = "files/directory.json"
     with open(directory_file) as file:
         directory_list = json.load(file)
     return directory_list
 
 
+@log("11")
 def show_directory_in_table(dict_list):
     if not dict_list:
         print("No individuals available.")
