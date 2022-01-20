@@ -1,0 +1,14 @@
+{
+  "header": {
+    "crc": "val",
+    "timestamp": "UTC_val"
+  },
+  "message": "base64_encoded_text_message",
+  "security": {
+    "hmac": {
+      "hmac_type": "val",
+      "hmac_val": "val"
+    },
+    "enc_type": "val"
+  }
+}

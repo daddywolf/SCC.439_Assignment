@@ -1,0 +1,14 @@
+[
+  {
+    "username": "jiangzhipeng",
+    "password": "666666",
+    "port": "80",
+    "ip": "192.168.0.1"
+  },
+  {
+    "username": "jiangzhipeng1",
+    "password": "7777777",
+    "port": "81",
+    "ip": "192.168.0.2"
+  }
+]
