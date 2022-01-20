@@ -30,11 +30,9 @@ def show_directory_in_table(dict_list):
     for i in dict_list:
         user_id += 1
         print(f"{user_id}\t\t{i['ip']}\t\t{i['port']}\t\t{i['username']}\t\t{i['password']}")
-
-
-def select_directory_individual(dict_list):
     target = int(input("Please select the target (id):"))
     if target < 1 or target > len(dict_list):
         print("Target input error. Please try again.")
-        show_directory_in_table(dict_list)
-    return dict_list[target - 1]
+        return show_directory_in_table(dict_list)
+    else:
+        return dict_list[target - 1]
