@@ -12,10 +12,8 @@ def input_port():
     return port
 
 
-def input_directory():
-    directory_file = input("Please specify the directory of individuals to contact: ")
-    if not directory_file:
-        directory_file = "files/directory.json"
+def input_directory(filename):
+    directory_file = f"files/{filename}"
     with open(directory_file) as file:
         directory_list = json.load(file)
     return directory_list
@@ -25,7 +23,7 @@ def show_directory_in_table(dict_list):
     if not dict_list:
         print("No individuals available.")
         return
-    print("id\t\t\tip\t\t\tport\t\tusername\t\tpassword")
+    print("id\t\tip\t\t\tport\t\tusername\t\tpassword")
     user_id = 0
     for i in dict_list:
         user_id += 1

@@ -1,3 +1,4 @@
+import random
 import socket
 
 from utils.diffiehellman import DiffieHellman
@@ -31,9 +32,10 @@ class Server:
             dh = DiffieHellman(23, 5)
             dh.generate_key_pair()
             self._session_key = dh.generate_shared_secret(int(msg.message))
+            print(f"DiffieHellman Key Exchange Successful. Shared Session Key: {self._session_key}")
             return Message('DiffieHellman', self._session_key).obj_to_json()
         if msg.msg_type == 'hello':
-            pass
+            return Message('challenge', hex(random.getrandbits(256))).obj_to_json()
         if msg.msg_type == 'message':
             pass
 
@@ -44,5 +46,3 @@ class Server:
 
 if __name__ == "__main__":
     server = Server()
-    data = server.receive_message('111')
-    print(data)
