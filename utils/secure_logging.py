@@ -2,6 +2,8 @@ import time
 
 from Cryptodome.Hash import HMAC, SHA256
 
+from utils.config import LOG_FILE
+
 
 class SecureLogging:
 
@@ -46,3 +48,8 @@ class SecureLogging:
         self._file.writelines(log_format)
         return log_format
 
+
+def log_to_file(level, message):
+    sl = SecureLogging()
+    sl.open(LOG_FILE, '666')
+    sl.log(level, message)

@@ -5,10 +5,10 @@ from connection.server import Server
 from utils.basic_functions import *
 # python main.py --file directory.json --port 8889
 from utils.message import Message
-from utils.welcome import welcome
+from utils.config import WELCOME
 
 if __name__ == '__main__':
-    print(welcome)
+    print(WELCOME)
     # parser = argparse.ArgumentParser()
     # parser.add_argument('--file', action='store', dest='file', required=True)
     # parser.add_argument('--port', action='store', dest='port', type=int, required=True)
