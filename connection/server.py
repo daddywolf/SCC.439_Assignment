@@ -1,31 +1,41 @@
 import socket
 
+from utils.diffiehellman import DiffieHellman
 from utils.message import Message
-
-HOST = '0.0.0.0'
-PORT = 8888
 
 
 class Server:
-    def __init__(self):
-        self._server_socket = None
-
-    def open_server(self):
+    def __init__(self, ip='0.0.0.0', port=8888):
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._server_socket.bind((HOST, PORT))
+        self._server_socket.bind((ip, port))
         self._server_socket.listen(1)
-        print(f"Server is up at {HOST}:{PORT}, waiting for the connection...")
+        self._session_key = None
+        print(f"Server is up at {ip}:{port}, waiting for the connection...")
 
-    def receive_message(self, message=None):
+    def receive_message(self, text=None):
+        global res
         while True:
             conn, addr = self._server_socket.accept()
-            print('Connected by', addr)
+            print(f'Connected by {addr[0]}:{addr[1]}')
             data = conn.recv(1024)
             if not data: break
-            print("data received: " + data.decode())
-            conn.sendall(str(message).encode())
+            res = self.data_handler(data)
+            conn.sendall(res.encode())
+            print(f"Message {data.decode()} received, {res} sent. ")
             conn.close()
         return data
+
+    def data_handler(self, data):
+        msg = Message(message_json=data.decode())
+        if msg.msg_type == 'DiffieHellman':
+            dh = DiffieHellman(23, 5)
+            dh.generate_key_pair()
+            self._session_key = dh.generate_shared_secret(int(msg.message))
+            return Message('DiffieHellman', self._session_key).obj_to_json()
+        if msg.msg_type == 'hello':
+            pass
+        if msg.msg_type == 'message':
+            pass
 
     def close_server(self):
         if self._server_socket:
@@ -34,6 +44,5 @@ class Server:
 
 if __name__ == "__main__":
     server = Server()
-    server.open_server()
-    data = server.receive_message()
+    data = server.receive_message('111')
     print(data)

@@ -46,9 +46,3 @@ class SecureLogging:
         self._file.writelines(log_format)
         return log_format
 
-
-if __name__ == "__main__":
-    sl = SecureLogging()
-    file = sl.open('log.log', '123456')
-    print(sl.log(1, "nihao"))
-

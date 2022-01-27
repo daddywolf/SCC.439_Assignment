@@ -47,10 +47,3 @@ class VerifyLogging:
                 error_dict[count] = res
         self._error_count = len(error_dict)
         self._error_lines = list(error_dict.values())
-
-
-if __name__ == "__main__":
-    sl = VerifyLogging('log.log')
-    sl.verify('log.log', '123456')
-    print(sl.error_lines)
-    sl.check_order()
