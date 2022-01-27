@@ -1,3 +1,4 @@
+import os
 import time
 
 from Cryptodome.Hash import HMAC, SHA256
@@ -30,7 +31,8 @@ class SecureLogging:
         self._filename = value
 
     def open(self, file_name, password):
-        self._file = open(file_name, 'a')
+        path = f'{os.getcwd()}/files/{file_name}'
+        self._file = open(path, 'a')
         self._password = password
 
     def close(self):

@@ -7,4 +7,4 @@ WELCOME = """ ██████╗ ███╗   ██╗██╗     ██
 By Zhipeng Jiang @Lancaster University     V1.0
 """
 
-LOG_FILE = '../files/log.log'
+LOG_FILE = 'log.log'
