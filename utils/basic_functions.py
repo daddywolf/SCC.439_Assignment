@@ -1,7 +1,5 @@
 import json
 
-from utils.logger import log
-
 
 def input_port():
     port = input("Please enter a port to incoming connections: ")
@@ -23,7 +21,6 @@ def input_directory():
     return directory_list
 
 
-@log()
 def show_directory_in_table(dict_list):
     if not dict_list:
         print("No individuals available.")

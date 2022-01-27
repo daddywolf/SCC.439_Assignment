@@ -1,6 +1,7 @@
 {
   "header": {
     "crc": "val",
+    "msg_type": "val",
     "timestamp": "UTC_val"
   },
   "message": "base64_encoded_text_message",
