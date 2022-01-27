@@ -1,7 +1,7 @@
 import random
 import socket
 
-from utils.diffiehellman import DiffieHellman
+from crypto.diffiehellman import DiffieHellman
 from utils.message import Message
 
 
@@ -46,3 +46,4 @@ class Server:
 
 if __name__ == "__main__":
     server = Server()
+    server.receive_message('111')

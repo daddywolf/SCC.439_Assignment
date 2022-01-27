@@ -1,15 +1,32 @@
-{
-  "header": {
-    "crc": "val",
-    "msg_type": "val",
-    "timestamp": "UTC_val"
-  },
-  "message": "base64_encoded_text_message",
-  "security": {
-    "hmac": {
-      "hmac_type": "val",
-      "hmac_val": "val"
+[
+  {
+    "header": {
+      "crc": "val",
+      "msg_type": "val",
+      "timestamp": "UTC_val"
     },
-    "enc_type": "val"
+    "message": "base64_encoded_text_message",
+    "security": {
+      "hmac": {
+        "hmac_type": "val",
+        "hmac_val": "val"
+      },
+      "enc_type": "val"
+    }
+  },
+  {
+    "header": {
+      "msg_type": "challenge",
+      "timestamp": 1643317138,
+      "crc": 2894321843
+    },
+    "message": "MHg0YTFiMDBiNjE3MzU2MWYzN2I0NzUyYjEzOTU4ZWJkYTgyMTI5NDk2NWZlNzk5YjA4MDUzY2FhODkzYzcxNWYz",
+    "security": {
+      "hmac": {
+        "hmac_type": "SHA256",
+        "hmac_val": "3c63db8f7d7824c8fe82677d1f167bdb83c5870a9f7d2a390ea8a150246a53ed"
+      },
+      "enc_type": "AES256 CBC"
+    }
   }
-}
+]

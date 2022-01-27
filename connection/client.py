@@ -16,6 +16,7 @@ class Client:
         self._client_socket.setblocking(True)
         self._client_socket.connect((self._ip, self._port))
         print(f"Client is connected at {self._ip}:{self._port}")
+        # TODO select.select and retry
         self._client_socket.sendall(text.encode())
         data = self._client_socket.recv(1024)
         self.data_handler(data)
@@ -29,6 +30,7 @@ class Client:
             self._session_key = int(msg.message)
             print(f"DiffieHellman Key Exchange Successful. Shared Session Key: {self._session_key}")
         if msg.msg_type == 'challenge':
+            # TODO How to calculate the challenge?
             print(f"Challenge received. {msg.message + hex(self._session_key)}")
 
 

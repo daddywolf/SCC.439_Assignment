@@ -1,6 +1,9 @@
 import base64
 import json
 import time
+import zlib
+
+from Cryptodome.Hash import HMAC, SHA256
 
 
 class Message:
@@ -18,33 +21,42 @@ class Message:
     def message(self):
         return self._message
 
-    def dh_key_exchange(self):
-        if self._msg_type != 'DiffieHellman':
-            raise Exception("Message Type not DiffieHellman!")
-        basic_message_template = {'msg_type': 'DiffieHellman', 'body': self._message}
-        return json.dumps(str(basic_message_template))
-
     def obj_to_json(self):
-        basic_message_template = {
+        message_template = {
             "header": {
-                # "crc": crc,
                 "msg_type": self._msg_type,
                 "timestamp": int(time.time())
             },
-            "message": base64.b64encode(str(self._message).encode()).decode(),
-            # "security": {
-            #     "hmac": {
-            #         "hmac_type": "SHA256",
-            #         "hmac_val": h.hexdigest()
-            #     },
-            #     "enc_type": enc_type
-            # }
+            "message": base64.b64encode(str(self._message).encode()).decode(),  # 1 Base64
         }
-        return json.dumps(basic_message_template)
+        # 2 Encryption
+        # TODO
+        # 3 HMAC Calculate
+        h = HMAC.new(b'hmac_key', digestmod=SHA256)
+        h.update(json.dumps(message_template).encode())
+        message_template['security'] = {'hmac': {'hmac_type': 'SHA256', 'hmac_val': h.hexdigest()},
+                                        'enc_type': 'AES256 CBC'}
+        # 4 CRC Calculate
+        message_template['header']['crc'] = zlib.crc32(json.dumps(message_template).encode())
+        return json.dumps(message_template)
 
     def json_to_obj(self, json_data):
         dict = json.loads(json_data)
-        self._msg_type = dict['header']['msg_type']
-        self._message = base64.b64decode(dict['message']).decode()
+        # 4 CRC Verify
         if dict['header'].get('crc'):
             self._crc = dict['header'].pop('crc')
+            new_crc = zlib.crc32(json.dumps(dict).encode())
+            assert self._crc == new_crc, "CRC CHECK FAILED"
+        # 3 HMAC Verify
+        if dict.get('security'):
+            security = dict.pop('security')
+            h = HMAC.new(b'hmac_key', digestmod=SHA256)
+            h.update(json.dumps(dict).encode())
+            try:
+                h.hexverify(security['hmac']['hmac_val'])
+            except ValueError:
+                print("The message or the key is wrong")
+        # 2 Decryption
+        # TODO
+        self._msg_type = dict['header']['msg_type']
+        self._message = base64.b64decode(dict['message']).decode()  # 1 Base64

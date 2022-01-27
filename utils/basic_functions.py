@@ -16,6 +16,7 @@ def input_directory(filename):
     directory_file = f"files/{filename}"
     with open(directory_file) as file:
         directory_list = json.load(file)
+        print("Directory File Load Successfully!")
     return directory_list
 
 
