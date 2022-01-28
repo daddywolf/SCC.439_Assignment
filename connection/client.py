@@ -1,7 +1,7 @@
 import random
 import socket
 
-from utils.message import Message
+from utils.pdu import PDU
 
 
 class Client:
@@ -25,7 +25,7 @@ class Client:
         return data
 
     def data_handler(self, data):
-        msg = Message(message_json=data.decode())
+        msg = PDU(message_json=data.decode())
         if msg.msg_type == 'DiffieHellman':
             self._session_key = int(msg.message)
             print(f"DiffieHellman Key Exchange Successful. Shared Session Key: {self._session_key}")
@@ -37,8 +37,8 @@ class Client:
 if __name__ == "__main__":
     client = Client()
     # Exchange Shared Key
-    pub_key = Message('DiffieHellman', random.randint(1, 10)).obj_to_json()
+    pub_key = PDU('DiffieHellman', random.randint(1, 10)).obj_to_json()
     client.send_message(pub_key)
     # CHAP - Hello
-    hello = Message('hello', '').obj_to_json()
+    hello = PDU('hello', '').obj_to_json()
     client.send_message(hello)

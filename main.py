@@ -4,7 +4,7 @@ from connection.client import Client
 from connection.server import Server
 from utils.basic_functions import *
 # python main.py --file directory.json --port 8889
-from utils.message import Message
+from utils.pdu import PDU
 from utils.config import WELCOME
 
 if __name__ == '__main__':
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     send_or_receive = input("What do you want to do? (send/receive)")
     if send_or_receive == 'send':
         client = Client(port=port)
-        client.send_message(Message('DiffieHellman', random.randint(1, 10)).obj_to_json())
+        client.send_message(PDU('DiffieHellman', random.randint(1, 10)).obj_to_json())
     elif send_or_receive == 'receive':
         print('Server Listening...')
         server = Server(port=port)

@@ -6,7 +6,7 @@ import zlib
 from Cryptodome.Hash import HMAC, SHA256
 
 
-class Message:
+class PDU:
     def __init__(self, msg_type=None, message=None, message_json=None):
         self._msg_type = msg_type
         self._message = message

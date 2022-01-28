@@ -2,7 +2,7 @@ import random
 import socket
 
 from crypto.diffiehellman import DiffieHellman
-from utils.message import Message
+from utils.pdu import PDU
 
 
 class Server:
@@ -27,15 +27,15 @@ class Server:
         return data
 
     def data_handler(self, data):
-        msg = Message(message_json=data.decode())
+        msg = PDU(message_json=data.decode())
         if msg.msg_type == 'DiffieHellman':
             dh = DiffieHellman(23, 5)
             dh.generate_key_pair()
             self._session_key = dh.generate_shared_secret(int(msg.message))
             print(f"DiffieHellman Key Exchange Successful. Shared Session Key: {self._session_key}")
-            return Message('DiffieHellman', self._session_key).obj_to_json()
+            return PDU('DiffieHellman', self._session_key).obj_to_json()
         if msg.msg_type == 'hello':
-            return Message('challenge', hex(random.getrandbits(256))).obj_to_json()
+            return PDU('challenge', hex(random.getrandbits(256))).obj_to_json()
         if msg.msg_type == 'message':
             pass
 
