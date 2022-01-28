@@ -34,8 +34,9 @@ class Message:
         # 3 HMAC Calculate
         h = HMAC.new(b'hmac_key', digestmod=SHA256)
         h.update(json.dumps(message_template).encode())
-        message_template['security'] = {'hmac': {'hmac_type': 'SHA256', 'hmac_val': h.hexdigest()},
-                                        'enc_type': 'AES256 CBC'}
+        if not self._msg_type == 'DiffieHellman':  # Only DH process do not require security methods
+            message_template['security'] = {'hmac': {'hmac_type': 'SHA256', 'hmac_val': h.hexdigest()},
+                                            'enc_type': 'AES256 CBC'}
         # 4 CRC Calculate
         message_template['header']['crc'] = zlib.crc32(json.dumps(message_template).encode())
         return json.dumps(message_template)
