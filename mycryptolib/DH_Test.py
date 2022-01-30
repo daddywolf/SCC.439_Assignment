@@ -1,0 +1,21 @@
+from mycryptolib.lancs_DH import DiffieHellman
+
+if __name__ == "__main__":
+    Alice = DiffieHellman()
+    Bob = DiffieHellman()
+    print('Alice:')
+    print(Alice)
+    print(Alice.validate_public_key())
+    print('Bob:')
+    print(Bob)
+    print(Bob.validate_public_key())
+    print(Bob.generate_shared_secret(Alice.public_key))
+    print(Alice.generate_shared_secret(Bob.public_key))
+    print(Alice)
+    print(Bob)
+    print(Alice.private_key_bytes)
+    print(Alice.public_key_bytes)
+    print(Alice.shared_secret_bytes)
+    print(Bob.private_key_bytes)
+    print(Bob.public_key_bytes)
+    print(Bob.shared_secret_bytes)
