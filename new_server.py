@@ -33,6 +33,7 @@ class Server:
         self._server_dh = DiffieHellman()
         self._public_key = self._server_dh.public_key
         print('Server Init Successful.')
+        return True
 
     def error(self):
         print('error')
@@ -81,8 +82,6 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
-        if type == 'hello':
-            print('>>>Hello Received Successfully')
         self._random_challange = urandom(32)
         conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode())
         conn.close()
@@ -92,8 +91,6 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
-        if type == 'chall':
-            print('>>>Challenge2 Received Successfully')
         ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
         conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
         conn.close()
@@ -108,10 +105,13 @@ class Server:
             ct_HMAC.verify(pt)
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
             conn.close()
+            print('>>>Single CHAP OK')
+            return True
         except Exception as e:
             conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode())
             conn.close()
-        # return generate_pdu('ack', None, self._key_dict)
+            print('>>>Single CHAP ERROR')
+            return False
 
     def nack(self):
         return generate_pdu('nack', None, self._key_dict)
@@ -120,15 +120,14 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
-        if type=='ack':
+        if type == 'ack':
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
             print('>>>Mutual CHAP OK')
             return True
-        if type=='nack':
+        if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return False
         conn.close()
-
 
 
 if __name__ == "__main__":

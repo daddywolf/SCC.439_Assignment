@@ -17,6 +17,7 @@ class Client:
         self._rempte_ip = remote_ip
         self._remote_port = remote_port
 
+
     def client_send_message(self, pdu_dict):
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((self._rempte_ip, int(self._remote_port)))
@@ -30,6 +31,7 @@ class Client:
         self._client_dh = DiffieHellman()
         self._public_key = self._client_dh.public_key
         print('Client Init Successful.')
+        return True
 
     # TODO 要好好想想这里如何设计
     def error(self):
@@ -68,8 +70,8 @@ class Client:
         pdu = generate_pdu('hello', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
-        return pt
+        type, ran_chall = decrypt_pdu(pdu_dict, self._key_dict)
+        return ran_chall
 
     def resp(self, ran_chall):
         ct_HMAC = HMAC.new(self._chap_secret, ran_chall, digestmod=SHA256)
