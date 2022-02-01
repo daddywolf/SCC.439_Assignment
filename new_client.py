@@ -102,7 +102,12 @@ class Client:
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
-        print(type, pt)
+        if type == 'ack':
+            print('>>>Mutual CHAP OK')
+            return True
+        if type == 'nack':
+            print('>>>Mutual CHAP ERROR')
+            return False
 
     def text(self):
         return generate_pdu('text', 'message'.encode('utf-8'), self._key_dict)

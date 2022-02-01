@@ -116,12 +116,19 @@ class Server:
     def nack(self):
         return generate_pdu('nack', None, self._key_dict)
 
-    def end(self):
+    def chap_end(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        print("ACK OR NACK" + data.decode())
-        conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        if type=='ack':
+            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+            print('>>>Mutual CHAP OK')
+            return True
+        if type=='nack':
+            print('>>>Mutual CHAP ERROR')
+            return False
         conn.close()
+
 
 
 if __name__ == "__main__":
@@ -132,4 +139,4 @@ if __name__ == "__main__":
     server.chall()
     ack = server.ack_or_nack()
     server.resp()
-    server.end()
+    server.chap_end()
