@@ -51,7 +51,7 @@ class ClientStateMachine:
                'body': {'key': base64.b64encode(self._public_key).decode('utf-8'),
                         'user': 'username'}}  # utf-8 encode username?
         pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
-        return json.dumps(pdu)
+        return pdu
 
     def _hello(self):
         return self.generate_pdu('hello', None)
