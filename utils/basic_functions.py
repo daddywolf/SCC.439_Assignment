@@ -20,7 +20,7 @@ def input_directory(filename):
     return directory_list
 
 
-def show_directory_in_table(dict_list):
+def select_user_from_table(dict_list):
     if not dict_list:
         print("No individuals available.")
         return
@@ -32,6 +32,6 @@ def show_directory_in_table(dict_list):
     target = int(input("Please select the target (id):"))
     if target < 1 or target > len(dict_list):
         print("Target input error. Please try again.")
-        return show_directory_in_table(dict_list)
+        return select_user_from_table(dict_list)
     else:
         return dict_list[target - 1]
