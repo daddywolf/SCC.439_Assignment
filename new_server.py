@@ -1,7 +1,6 @@
 import base64
 import json
 import socket
-import sys
 import time
 import zlib
 from os import urandom
@@ -14,6 +13,7 @@ from utils.basic_functions import generate_pdu, decrypt_pdu
 
 class Server:
     def __init__(self, local_port):
+        self._random_challange = None
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind(('127.0.0.1', int(local_port)))
         self._server.listen(1)
@@ -24,7 +24,6 @@ class Server:
 
     def server_send_message(self, pdu_dict):
         conn, addr = self._server.accept()
-        print('Connected by', addr)
         data = conn.recv(1024)
         conn.sendall(json.dumps(pdu_dict).encode())
         conn.close()
@@ -75,35 +74,54 @@ class Server:
             'hmac_key': self._hmac_key,
             'chap_secret': self._chap_secret
         }
-        print('Key Generation Successfully')
+        print('>>>Server Key Generation Successfully')
         return True
 
     def chall(self):
         conn, addr = self._server.accept()
-        print('Connected by', addr)
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
-        print(f"type: {type}, pt: {pt}")
         if type == 'hello':
-            conn.sendall(json.dumps(generate_pdu('chall', urandom(32), self._key_dict)).encode())
+            print('>>>Hello Received Successfully')
+        self._random_challange = urandom(32)
+        conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode())
         conn.close()
         return True
 
     def resp(self):
-        """
-        ??? Responses should be a HMAC-SHA256 with the CHAP_SECRET as the password and the random data as the information to be hashed.
-        """
-        return generate_pdu('resp', b'hello world', self._key_dict)
+        conn, addr = self._server.accept()
+        data = conn.recv(1024)
+        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        if type == 'chall':
+            print('>>>Challenge2 Received Successfully')
+        ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
+        conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
+        conn.close()
+        return True
 
-    def ack(self):
-        return generate_pdu('ack', None, self._key_dict)
+    def ack_or_nack(self):
+        conn, addr = self._server.accept()
+        data = conn.recv(1024)
+        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        ct_HMAC = HMAC.new(self._chap_secret, self._random_challange, digestmod=SHA256)
+        try:
+            ct_HMAC.verify(pt)
+            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+            conn.close()
+        except Exception as e:
+            conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode())
+            conn.close()
+        # return generate_pdu('ack', None, self._key_dict)
 
     def nack(self):
         return generate_pdu('nack', None, self._key_dict)
 
     def end(self):
-        print('end')
-        sys.exit(0)
+        conn, addr = self._server.accept()
+        data = conn.recv(1024)
+        print("ACK OR NACK" + data.decode())
+        conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+        conn.close()
 
 
 if __name__ == "__main__":
@@ -111,4 +129,7 @@ if __name__ == "__main__":
     server = Server(local_port=8888)
     server.init()
     dh_2 = server.dh_2()
-    chall = server.chall()
+    server.chall()
+    ack = server.ack_or_nack()
+    server.resp()
+    server.end()

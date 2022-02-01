@@ -13,6 +13,7 @@ from utils.basic_functions import input_directory, select_user_from_table, gener
 
 class Client:
     def __init__(self, remote_ip, remote_port):
+        self._random_challange = None
         self._rempte_ip = remote_ip
         self._remote_port = remote_port
 
@@ -60,29 +61,48 @@ class Client:
             'hmac_key': self._hmac_key,
             'chap_secret': self._chap_secret
         }
-        print('Key Generation Successfully')
+        print('>>>Client Key Generation Successfully')
         return True
 
     def hello(self):
-        ret = self.client_send_message(generate_pdu('hello', None, self._key_dict))
-        print(ret)
+        pdu = generate_pdu('hello', None, self._key_dict)
+        ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
-        print(f"type: {type}, pt: {pt}")
-        return
+        return pt
 
-    def resp(self):
-        """
-        ??? Responses should be a HMAC-SHA256 with the CHAP_SECRET as the password and the random data as the information to be hashed.
-        """
-        pdu = generate_pdu('resp', b'hello world', self._key_dict)
-        return pdu
+    def resp(self, ran_chall):
+        ct_HMAC = HMAC.new(self._chap_secret, ran_chall, digestmod=SHA256)
+        pdu = generate_pdu('resp', ct_HMAC.digest(), self._key_dict)
+        ret = self.client_send_message(pdu)
+        pdu_dict = json.loads(ret)
+        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        if type == 'ack':
+            print('>>>Single CHAP OK')
+            return True
+        if type == 'nack':
+            print('>>>Single CHAP ERROR')
+            return False
 
     def chall(self):
-        return generate_pdu('chall', urandom(32), self._key_dict)
+        self._random_challange = urandom(32)
+        pdu = generate_pdu('chall', self._random_challange, self._key_dict)
+        ret = self.client_send_message(pdu)
+        pdu_dict = json.loads(ret)
+        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        return pt
 
-    def ack(self):
-        return generate_pdu('ack', None, self._key_dict)
+    def ack_or_nack(self, hmac):
+        ct_HMAC = HMAC.new(self._chap_secret, self._random_challange, digestmod=SHA256)
+        try:
+            ct_HMAC.verify(hmac)
+            pdu = generate_pdu('ack', None, self._key_dict)
+        except Exception as e:
+            pdu = generate_pdu('nack', None, self._key_dict)
+        ret = self.client_send_message(pdu)
+        pdu_dict = json.loads(ret)
+        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        print(type, pt)
 
     def text(self):
         return generate_pdu('text', 'message'.encode('utf-8'), self._key_dict)
@@ -96,4 +116,7 @@ if __name__ == "__main__":
     client = Client(remote_ip='0.0.0.0', remote_port=8888)
     client.init()
     dh_1 = client.dh_1(user)
-    client.hello()
+    ran_chall = client.hello()
+    client.resp(ran_chall)
+    hmac = client.chall()
+    client.ack_or_nack(hmac)
