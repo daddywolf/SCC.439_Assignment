@@ -1,4 +1,11 @@
+import base64
 import json
+import time
+import zlib
+
+from Cryptodome.Cipher import AES
+from Cryptodome.Hash import SHA256, HMAC
+from Cryptodome.Util.Padding import pad, unpad
 
 
 def input_port():
@@ -35,3 +42,39 @@ def select_user_from_table(dict_list):
         return select_user_from_table(dict_list)
     else:
         return dict_list[target - 1]
+
+
+def generate_pdu(msg_type, data, key_dict):
+    body = None
+    if data:
+        cipher = AES.new(key_dict['enc_key'], AES.MODE_CBC, key_dict['iv'])
+        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+        body = base64.b64encode(ct_bytes).decode('utf-8')
+    pdu = {'header': {'msg_type': msg_type, 'timestamp': time.time(), 'crc': 0x00}, 'body': body,
+           'security': {'hmac': {'type': 'SHA256', 'val': 0x00}, 'enc_type': 'AES256-CBC'}}
+    ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)
+    pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode()
+    pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
+    return pdu
+
+
+def decrypt_pdu(pdu_dict, key_dict):
+    crc_other = pdu_dict['header'].pop('crc')
+    pdu_dict['header']['crc'] = 0x00
+    crc_my = zlib.crc32(json.dumps(pdu_dict).encode('utf-8'))
+    if not crc_other == crc_my:
+        raise Exception("CRC ERROR")
+    hmac_other = pdu_dict['security']['hmac'].pop('val')
+    pdu_dict['security']['hmac']['val'] = 0x00
+    hmac_my = HMAC.new(key_dict['hmac_key'], json.dumps(pdu_dict).encode('utf-8'), digestmod=SHA256)
+    try:
+        hmac_my.verify(base64.b64decode(hmac_other))
+    except Exception as e:
+        print('       HMAC OK: False')
+    if pdu_dict['body']:
+        ct_bytes = base64.b64decode(pdu_dict['body'])
+        decipher = AES.new(key_dict['enc_key'], AES.MODE_CBC, key_dict['iv'])
+        pt = unpad(decipher.decrypt(ct_bytes), AES.block_size)
+        return pdu_dict['header']['msg_type'], pt
+    else:
+        return pdu_dict['header']['msg_type'], None
