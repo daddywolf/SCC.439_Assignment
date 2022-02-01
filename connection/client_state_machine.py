@@ -47,7 +47,7 @@ class ClientStateMachine:
         print('error')
 
     def _dh_1(self):
-        pdu = {'header': {'msg_type': 'dh_1', 'timestamp': int(time.time())},
+        pdu = {'header': {'msg_type': 'dh_1', 'timestamp': time.time()},
                'body': {'key': base64.b64encode(self._public_key).decode('utf-8'),
                         'user': 'username'}}  # utf-8 encode username?
         pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
@@ -91,13 +91,14 @@ class ClientStateMachine:
         cipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
         if data:
             ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-            pdu = {'header': {'msg_type': state, 'timestamp': int(time.time())},
-                   'body': base64.b64encode(ct_bytes).decode('utf-8'), 'security': {'hmac': {'type': 'SHA256'}}}
+            pdu = {'header': {'msg_type': state, 'timestamp': time.time()},
+                   'body': base64.b64encode(ct_bytes).decode('utf-8'),
+                   'security': {'hmac': {'type': 'SHA256'}, 'enc_type': 'AES256-CBC'}}
         else:
-            pdu = {'header': {'msg_type': state, 'timestamp': int(time.time())},
+            pdu = {'header': {'msg_type': state, 'timestamp': time.time()},
                    'body': None, 'security': {'hmac': {'type': 'SHA256'}}}
-        pdu['security']['hmac']['val'] = HMAC.new(self._hmac_key, json.dumps(pdu).encode('utf-8'),
-                                                  digestmod=SHA256).hexdigest()
+        pdu['security']['hmac']['val'] = base64.b64encode(HMAC.new(self._hmac_key, json.dumps(pdu).encode('utf-8'),
+                                                                   digestmod=SHA256).digest()).decode()
         pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
         return json.dumps(pdu)
 
