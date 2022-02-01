@@ -54,8 +54,7 @@ class ClientStateMachine:
         return json.dumps(pdu)
 
     def _hello(self):
-        pdu = self.generate_pdu('hello', None)
-        return pdu
+        return self.generate_pdu('hello', None)
 
     def _resp(self):
         """
@@ -65,16 +64,13 @@ class ClientStateMachine:
         return pdu
 
     def _chall(self):
-        pdu = self.generate_pdu('chall', urandom(32))
-        return pdu
+        return self.generate_pdu('chall', urandom(32))
 
     def _ack(self):
-        pdu = self.generate_pdu('ack', None)
-        return pdu
+        return self.generate_pdu('ack', None)
 
     def _text(self):
-        pdu = self.generate_pdu('text', 'message'.encode('utf-8'))
-        return pdu
+        return self.generate_pdu('text', 'message'.encode('utf-8'))
 
     def event_handler(self, event):
         if self._current_state not in self._state_machine.keys():
@@ -88,19 +84,17 @@ class ClientStateMachine:
         return ret
 
     def generate_pdu(self, state, data):
-        cipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
+        body = None
         if data:
+            cipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
             ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-            pdu = {'header': {'msg_type': state, 'timestamp': time.time()},
-                   'body': base64.b64encode(ct_bytes).decode('utf-8'),
-                   'security': {'hmac': {'type': 'SHA256'}, 'enc_type': 'AES256-CBC'}}
-        else:
-            pdu = {'header': {'msg_type': state, 'timestamp': time.time()},
-                   'body': None, 'security': {'hmac': {'type': 'SHA256'}}}
+            body = base64.b64encode(ct_bytes).decode('utf-8')
+        pdu = {'header': {'msg_type': state, 'timestamp': time.time(), 'crc': 0x00}, 'body': body,
+               'security': {'hmac': {'type': 'SHA256', 'val': 0x00}, 'enc_type': 'AES256-CBC'}}
         pdu['security']['hmac']['val'] = base64.b64encode(HMAC.new(self._hmac_key, json.dumps(pdu).encode('utf-8'),
                                                                    digestmod=SHA256).digest()).decode()
         pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
-        return json.dumps(pdu)
+        return pdu
 
 
 if __name__ == "__main__":
