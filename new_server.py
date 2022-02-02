@@ -1,6 +1,7 @@
 import base64
 import json
 import socket
+import sys
 import time
 import zlib
 from os import urandom
@@ -14,10 +15,10 @@ from utils.basic_functions import generate_pdu, decrypt_pdu
 class Server:
     def __init__(self, local_port):
         self._current_state = 'init'
-        self._random_challenge = None
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind(('127.0.0.1', int(local_port)))
         self._server.listen(1)
+        self._random_challenge = None
         self._state_machine = {
             'init': {'init': {'nxt_state': 'dh_2', 'action': self._init},
                      'error': {'nxt_state': 'end', 'action': self._error}},
@@ -29,8 +30,14 @@ class Server:
                             'error': {'nxt_state': 'chall', 'action': self._error}},
             'resp': {'ok': {'nxt_state': 'chap_end', 'action': self._resp},
                      'error': {'nxt_state': 'end', 'chall': self._error}},
-            'chap_end': {'ok': {'nxt_state': 'init', 'action': self._chap_end}}
+            'chap_end': {'ok': {'nxt_state': 'text', 'action': self._chap_end}},
+            'text': {'ok': {'nxt_state': 'text', 'action': self._text},
+                     'error': {'nxt_state': 'end', 'chall': self._error}}
         }
+
+    @property
+    def server(self):
+        return self._server
 
     def server_send_message(self, pdu_dict):
         conn, addr = self._server.accept()
@@ -130,10 +137,25 @@ class Server:
         if type == 'ack':
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             print('>>>Mutual CHAP OK')
+            print('>>>Receiving messages from client...')
             return "Mutual CHAP OK"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return "error"
+        conn.close()
+
+    def _text(self):
+        conn, addr = self._server.accept()
+        data = conn.recv(1024)
+        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        if pt.decode('utf-8') == 'close()':
+            conn.close()
+            self._server.close()
+            print(">>>Bye")
+            sys.exit(0)
+        else:
+            print(f"{addr[0]} says: {pt.decode('utf-8')}")
+        conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
         conn.close()
 
     def event_handler(self, event):
@@ -154,8 +176,6 @@ if __name__ == "__main__":
     status = server.event_handler('init')
     while status != 'error':
         flag = server.event_handler(status)  # dh_2
-        if flag == 'Mutual CHAP OK':
-            break
     # server.init()
     # dh_2 = server.dh_2()
     # server.chall()

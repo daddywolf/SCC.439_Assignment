@@ -23,7 +23,6 @@ def input_directory(filename):
     directory_file = f"files/{filename}"
     with open(directory_file) as file:
         directory_list = json.load(file)
-        print("Directory File Load Successfully!")
     return directory_list
 
 
@@ -31,11 +30,12 @@ def select_user_from_table(dict_list):
     if not dict_list:
         print("No individuals available.")
         return
-    print("id\t\tip\t\t\tport\t\tusername\t\tpassword")
+    print("id\t\t\tip\t\t\tport\t\tusername")
+    print("-------------------------------------------------")
     user_id = 0
     for i in dict_list:
         user_id += 1
-        print(f"{user_id}\t\t{i['ip']}\t\t{i['port']}\t\t{i['username']}\t\t{i['password']}")
+        print(f"{user_id}\t\t{i['ip']}\t\t{i['port']}\t\t{i['username']}")
     target = int(input("Please select the target (id):"))
     if target < 1 or target > len(dict_list):
         print("Target input error. Please try again.")
@@ -55,7 +55,6 @@ def generate_pdu(msg_type, data, key_dict):
     ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)
     pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode('utf-8')
     pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
-    print(pdu)
     return pdu
 
 

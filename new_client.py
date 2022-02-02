@@ -1,6 +1,7 @@
 import base64
 import json
 import socket
+import sys
 import time
 import zlib
 from os import urandom
@@ -12,11 +13,12 @@ from utils.basic_functions import input_directory, select_user_from_table, gener
 
 
 class Client:
-    def __init__(self, remote_ip, remote_port):
+    def __init__(self, remote_ip, remote_port, user):
         self._current_state = 'init'
-        self._random_challenge = None
-        self._rempte_ip = remote_ip
+        self._remote_ip = remote_ip
         self._remote_port = remote_port
+        self._user = user
+        self._random_challenge = None
         self._state_machine = {
             'init': {'init': {'nxt_state': 'dh_1', 'action': self._init},
                      'error': {'nxt_state': 'dh_1', 'action': self._error}},
@@ -30,13 +32,13 @@ class Client:
                       'error': {'nxt_state': 'hello', 'action': self._error}},
             'ack_or_nack': {'ok': {'nxt_state': 'text', 'action': self._ack_or_nack},
                             'error': {'nxt_state': 'hello', 'action': self._error}},
-            'text': {'ok': {'nxt_state': 'text', 'action': self._text},
+            'text': {'ok': {'nxt_state': 'text', 'action': self.text},
                      'error': {'nxt_state': 'hello', 'action': self._error}}
         }
 
     def client_send_message(self, pdu_dict):
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._client.connect((self._rempte_ip, int(self._remote_port)))
+        self._client.connect((self._remote_ip, int(self._remote_port)))
         self._client.sendall(json.dumps(pdu_dict).encode('utf-8'))
         data = self._client.recv(1024)
         self._client.close()
@@ -52,17 +54,18 @@ class Client:
     def _error(self):
         print('error')
 
-    def _dh_1(self, user):
+    def _dh_1(self):
+        user = self._user
         # DO DH KEY EXCHANGE
         dh_1_pdu = {'header': {'msg_type': 'dh_1', 'timestamp': time.time()},
                     'body': {'key': base64.b64encode(str(self._public_key).encode('utf-8')).decode('utf-8'),
-                             'user': user[0]['username']}}
+                             'user': user['username']}}
         dh_1_pdu['header']['crc'] = zlib.crc32(json.dumps(dh_1_pdu).encode('utf-8'))
         dh_2_pdu = json.loads(self.client_send_message(dh_1_pdu))
         server_public_key = int(base64.b64decode(dh_2_pdu['body']['key']).decode('utf-8'))
         self._client_dh.generate_shared_secret(server_public_key)
         # CALCULATE KEYS
-        user_password = user[0]['password'].encode('utf-8')
+        user_password = user['password'].encode('utf-8')
         hmac = HMAC.new(user_password, self._client_dh.shared_secret_bytes, digestmod=SHA256)
         self._enc_key = hmac.digest()
         hash = SHA256.new()
@@ -86,10 +89,11 @@ class Client:
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
         type, ran_chall = decrypt_pdu(pdu_dict, self._key_dict)
-        return ran_chall
+        self._ran_chall = ran_chall
+        return 'ok'
 
-    def _resp(self, ran_chall):
-        ct_HMAC = HMAC.new(self._chap_secret, ran_chall[0], digestmod=SHA256)
+    def _resp(self):
+        ct_HMAC = HMAC.new(self._chap_secret, self._ran_chall, digestmod=SHA256)
         pdu = generate_pdu('resp', ct_HMAC.digest(), self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
@@ -106,13 +110,13 @@ class Client:
         pdu = generate_pdu('chall', self._random_challenge, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
-        return pt
+        type, self._hmac = decrypt_pdu(pdu_dict, self._key_dict)
+        return 'ok'
 
-    def _ack_or_nack(self, hmac):
+    def _ack_or_nack(self):
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
-            ct_HMAC.verify(hmac[0])
+            ct_HMAC.verify(self._hmac)
             pdu = generate_pdu('ack', None, self._key_dict)
         except Exception as e:
             pdu = generate_pdu('nack', None, self._key_dict)
@@ -121,14 +125,27 @@ class Client:
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             print('>>>Mutual CHAP OK')
+            print('>>>You can send your message now. Type "close()" to exit.')
             return "ok"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return "error"
 
-    def _text(self):
-        # TODO
-        return generate_pdu('text', 'message'.encode('utf-8'), self._key_dict)
+    def text(self, text):
+        if text == 'close()':
+            pdu = generate_pdu('close', text.encode('utf-8'), self._key_dict)
+            self.client_send_message(pdu)
+            print(">>>Bye")
+            sys.exit(0)
+        else:
+            pdu = generate_pdu('text', text.encode('utf-8'), self._key_dict)
+            ret = self.client_send_message(pdu)
+        pdu_dict = json.loads(ret)
+        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        if type == 'ack':
+            return "ok"
+        if type == 'nack':
+            return "error"
 
     def event_handler(self, event, *args):
         if self._current_state not in self._state_machine.keys():
@@ -148,13 +165,14 @@ if __name__ == "__main__":
     directory_dict = input_directory('directory.json')
     user = select_user_from_table(directory_dict)
     # Init Client
-    client = Client(remote_ip='0.0.0.0', remote_port=8888)
+    client = Client('0.0.0.0', 8888, user)
     status = client.event_handler('init')
-    status = client.event_handler(status, user)  # dh_1
-    ran_chall = client.event_handler(status)  # hello
-    status = client.event_handler(status, ran_chall)  # resp
-    hmac = client.event_handler(status)  # chall
-    status = client.event_handler(status, hmac)  # ack_or_nack
+    while status != 'error':
+        try:
+            status = client.event_handler(status)
+        except:
+            message = input('message>')
+            status = client.text(message)
     # client.init()
     # dh_1 = client.dh_1(user)
     # ran_chall = client.hello()
