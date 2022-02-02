@@ -13,10 +13,24 @@ from utils.basic_functions import generate_pdu, decrypt_pdu
 
 class Server:
     def __init__(self, local_port):
+        self._current_state = 'init'
         self._random_challange = None
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind(('127.0.0.1', int(local_port)))
         self._server.listen(1)
+        self._state_machine = {
+            'init': {'init': {'nxt_state': 'dh_2', 'action': self._init},
+                     'error': {'nxt_state': 'end', 'action': self._error}},
+            'dh_2': {'ok': {'nxt_state': 'chall', 'action': self._dh_2},
+                     'error': {'nxt_state': 'end', 'action': self._error}},
+            'chall': {'ok': {'nxt_state': 'ack_or_nack', 'action': self._chall},
+                      'error': {'nxt_state': 'nack', 'action': self._error}},
+            'ack_or_nack': {'ok': {'nxt_state': 'resp', 'action': self._ack_or_nack},
+                            'error': {'nxt_state': 'end', 'action': self._error}},
+            'resp': {'ok': {'nxt_state': 'chap_end', 'action': self._resp},
+                     'error': {'nxt_state': 'end', 'action': self._error}},
+            'chap_end': {'ok': {'nxt_state': 'init', 'action': self._chap_end}}
+        }
 
     @property
     def server(self):
@@ -29,16 +43,16 @@ class Server:
         conn.close()
         return data.decode()
 
-    def init(self):
+    def _init(self):
         self._server_dh = DiffieHellman()
         self._public_key = self._server_dh.public_key
         print('Server Init Successful.')
         return True
 
-    def error(self):
+    def _error(self):
         print('error')
 
-    def dh_2(self):
+    def _dh_2(self):
         # DO DH KEY EXCHANGE
         conn, addr = self._server.accept()
         print('Connected by', addr)
@@ -78,7 +92,7 @@ class Server:
         print('>>>Server Key Generation Successfully')
         return True
 
-    def chall(self):
+    def _chall(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
@@ -87,16 +101,7 @@ class Server:
         conn.close()
         return True
 
-    def resp(self):
-        conn, addr = self._server.accept()
-        data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
-        ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
-        conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
-        conn.close()
-        return True
-
-    def ack_or_nack(self):
+    def _ack_or_nack(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
@@ -113,29 +118,51 @@ class Server:
             print('>>>Single CHAP ERROR')
             return False
 
-    def nack(self):
-        return generate_pdu('nack', None, self._key_dict)
+    def _resp(self):
+        conn, addr = self._server.accept()
+        data = conn.recv(1024)
+        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
+        conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
+        conn.close()
+        return True
 
-    def chap_end(self):
+    def _chap_end(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
         if type == 'ack':
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
             print('>>>Mutual CHAP OK')
-            return True
+            return "Mutual CHAP OK"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return False
         conn.close()
 
+    def event_handler(self, event):
+        if self._current_state not in self._state_machine.keys():
+            raise Exception(f'current state not in state list {self._current_state}')
+        nxt_state = self._state_machine[self._current_state][event]['nxt_state']
+        action = self._state_machine[self._current_state][event]['action']
+        ret = None
+        if action is not None:
+            ret = action()
+        self._current_state = nxt_state
+        return ret
+
 
 if __name__ == "__main__":
     # Init Server
     server = Server(local_port=8888)
-    server.init()
-    dh_2 = server.dh_2()
-    server.chall()
-    ack = server.ack_or_nack()
-    server.resp()
-    server.chap_end()
+    flag = server.event_handler('init')
+    while flag:
+        flag = server.event_handler('ok')  # dh_2
+        if flag == 'Mutual CHAP OK':
+            break
+    # server.init()
+    # dh_2 = server.dh_2()
+    # server.chall()
+    # ack = server.ack_or_nack()
+    # server.resp()
+    # server.chap_end()
