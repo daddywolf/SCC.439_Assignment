@@ -1,8 +1,8 @@
 import select
 import sys
 
-from new_client import Client
-from new_server import Server
+from connect.new_client import Client
+from connect.new_server import Server
 from utils.basic_functions import input_directory, select_user_from_table, input_port
 from utils.config import WELCOME
 
