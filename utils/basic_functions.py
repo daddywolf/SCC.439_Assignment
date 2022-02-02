@@ -30,8 +30,8 @@ def select_user_from_table(dict_list):
     if not dict_list:
         print("No individuals available.")
         return
-    print("id\t\t\tip\t\t\tport\t\tusername")
-    print("-------------------------------------------------")
+    print("id\t\tip\t\t\tport\t\tusername")
+    print("---------------------------------------------------------------------")
     user_id = 0
     for i in dict_list:
         user_id += 1
@@ -55,7 +55,7 @@ def generate_pdu(msg_type, data, key_dict):
     ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)
     pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode('utf-8')
     pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
-    print(pdu)
+    print_green(pdu)
     return pdu
 
 
@@ -79,3 +79,15 @@ def decrypt_pdu(pdu_dict, key_dict):
         return pdu_dict['header']['msg_type'], pt
     else:
         return pdu_dict['header']['msg_type'], None
+
+
+def print_green(text):
+    print(f'\033[92m{text}\033[0m')
+
+
+def print_yello(text):
+    print(f'\033[93m{text}\033[0m')
+
+
+def print_red(text):
+    print(f'\033[91m{text}\033[0m')
