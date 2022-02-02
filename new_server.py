@@ -62,7 +62,6 @@ class Server:
         data = conn.recv(1024)
         dh_1_pdu = json.loads(data.decode('utf-8'))
         username = dh_1_pdu['body']['user']
-        print(username)
         client_public_key = int(base64.b64decode(dh_1_pdu['body']['key']).decode('utf-8'))
         dh_2_pdu = {'header': {'msg_type': 'dh_2', 'timestamp': time.time()},
                     'body': {'key': base64.b64encode(str(self._public_key).encode('utf-8')).decode('utf-8')}}
@@ -154,7 +153,7 @@ class Server:
             print(">>>Bye")
             sys.exit(0)
         else:
-            print(f"{addr[0]} says: {pt.decode('utf-8')}")
+            print(f"\n{addr[0]} says: {pt.decode('utf-8')}")
         conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
         conn.close()
 
