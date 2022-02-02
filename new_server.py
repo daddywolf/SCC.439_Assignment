@@ -14,7 +14,7 @@ from utils.basic_functions import generate_pdu, decrypt_pdu
 class Server:
     def __init__(self, local_port):
         self._current_state = 'init'
-        self._random_challange = None
+        self._random_challenge = None
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind(('127.0.0.1', int(local_port)))
         self._server.listen(1)
@@ -92,8 +92,8 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        self._random_challange = urandom(32)
-        conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode('utf-8'))
+        self._random_challenge = urandom(32)
+        conn.sendall(json.dumps(generate_pdu('chall', self._random_challenge, self._key_dict)).encode('utf-8'))
         conn.close()
         return "ok"
 
@@ -101,7 +101,7 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        ct_HMAC = HMAC.new(self._chap_secret, self._random_challange, digestmod=SHA256)
+        ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
             ct_HMAC.verify(pt)
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))

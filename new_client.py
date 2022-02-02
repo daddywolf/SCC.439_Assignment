@@ -14,7 +14,7 @@ from utils.basic_functions import input_directory, select_user_from_table, gener
 class Client:
     def __init__(self, remote_ip, remote_port):
         self._current_state = 'init'
-        self._random_challange = None
+        self._random_challenge = None
         self._rempte_ip = remote_ip
         self._remote_port = remote_port
         self._state_machine = {
@@ -102,15 +102,15 @@ class Client:
             return "error"
 
     def _chall(self):
-        self._random_challange = urandom(32)
-        pdu = generate_pdu('chall', self._random_challange, self._key_dict)
+        self._random_challenge = urandom(32)
+        pdu = generate_pdu('chall', self._random_challenge, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
         return pt
 
     def _ack_or_nack(self, hmac):
-        ct_HMAC = HMAC.new(self._chap_secret, self._random_challange, digestmod=SHA256)
+        ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
             ct_HMAC.verify(hmac[0])
             pdu = generate_pdu('ack', None, self._key_dict)
