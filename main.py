@@ -1,30 +1,37 @@
-import random
+import select
+import sys
 
-from connection.client import Client
-from connection.server import Server
-from utils.basic_functions import *
-# python main.py --file directory.json --port 8889
-from utils.pdu import PDU
+from connect.new_client import Client
+from connect.new_server import Server
+from utils.basic_functions import input_directory, select_user_from_table, input_port
 from utils.config import WELCOME
 
 if __name__ == '__main__':
     print(WELCOME)
     # parser = argparse.ArgumentParser()
-    # parser.add_argument('--file', action='store', dest='file', required=True)
     # parser.add_argument('--port', action='store', dest='port', type=int, required=True)
     # given_args = parser.parse_args()
-    # file = given_args.file
     # port = given_args.port
-    file = 'directory.json'
-    port = int(input('Port:'))
-    directory_dict = input_directory(file)
-    send_or_receive = input("What do you want to do? (send/receive)")
-    if send_or_receive == 'send':
-        client = Client(port=port)
-        client.send_message(PDU('DiffieHellman', random.randint(1, 10)).obj_to_json())
-    elif send_or_receive == 'receive':
-        print('Server Listening...')
-        server = Server(port=port)
-        server.receive_message('111')
-    else:
-        raise Exception("input Error")
+    username = input("Input username: ")
+    local_server_port = input_port()
+    print(f'Hi <{username}>! You are running a server on <0.0.0.0:{local_server_port}>')
+    directory_dict = input_directory('directory.json')
+    user = select_user_from_table(directory_dict)
+    print(f"You want to send message to <{user['username']}> on <{user['ip']}:{user['port']}>.")
+    client = Client(user['ip'], user['port'], user)
+    client_status = client.event_handler('init')
+    server = Server(local_server_port)
+    server_status = server.event_handler('init')
+    print("Press any key to send message...")
+    inputs = [server.server, sys.stdin]
+    while 1:
+        readable, writable, exceptional = select.select(inputs, [], [])
+        if server.server in readable:
+            server.event_handler('ok')
+        if sys.stdin in readable:
+            try:
+                status = client.event_handler('ok')
+            except:
+                message = input()
+                if message != "":
+                    status = client.text(message)

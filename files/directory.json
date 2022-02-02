@@ -2,25 +2,25 @@
   {
     "username": "jiangzhipeng",
     "password": "111111",
-    "port": "8888",
+    "port": "7777",
     "ip": "127.0.0.1"
   },
   {
     "username": "jiangkaiwen",
     "password": "222222",
-    "port": "8889",
+    "port": "7778",
     "ip": "127.0.0.1"
   },
   {
     "username": "weichengyang",
     "password": "333333",
-    "port": "8889",
+    "port": "7779",
     "ip": "127.0.0.1"
   },
   {
     "username": "wangxinzhong",
     "password": "444444",
-    "port": "8889",
+    "port": "7780",
     "ip": "127.0.0.1"
   }
 ]
