@@ -37,10 +37,10 @@ class Client:
     def client_send_message(self, pdu_dict):
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((self._rempte_ip, int(self._remote_port)))
-        self._client.sendall(json.dumps(pdu_dict).encode())
+        self._client.sendall(json.dumps(pdu_dict).encode('utf-8'))
         data = self._client.recv(1024)
         self._client.close()
-        return data.decode()
+        return data.decode('utf-8')
 
     def _init(self):
         self._client_dh = DiffieHellman()
@@ -55,14 +55,14 @@ class Client:
     def _dh_1(self, user):
         # DO DH KEY EXCHANGE
         dh_1_pdu = {'header': {'msg_type': 'dh_1', 'timestamp': time.time()},
-                    'body': {'key': base64.b64encode(str(self._public_key).encode()).decode('utf-8'),
+                    'body': {'key': base64.b64encode(str(self._public_key).encode('utf-8')).decode('utf-8'),
                              'user': user[0]['username']}}
         dh_1_pdu['header']['crc'] = zlib.crc32(json.dumps(dh_1_pdu).encode('utf-8'))
         dh_2_pdu = json.loads(self.client_send_message(dh_1_pdu))
-        server_public_key = int(base64.b64decode(dh_2_pdu['body']['key']).decode())
+        server_public_key = int(base64.b64decode(dh_2_pdu['body']['key']).decode('utf-8'))
         self._client_dh.generate_shared_secret(server_public_key)
         # CALCULATE KEYS
-        user_password = user[0]['password'].encode()
+        user_password = user[0]['password'].encode('utf-8')
         hmac = HMAC.new(user_password, self._client_dh.shared_secret_bytes, digestmod=SHA256)
         self._enc_key = hmac.digest()
         hash = SHA256.new()

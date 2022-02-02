@@ -53,8 +53,9 @@ def generate_pdu(msg_type, data, key_dict):
     pdu = {'header': {'msg_type': msg_type, 'timestamp': time.time(), 'crc': 0x00}, 'body': body,
            'security': {'hmac': {'type': 'SHA256', 'val': 0x00}, 'enc_type': 'AES256-CBC'}}
     ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)
-    pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode()
+    pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode('utf-8')
     pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
+    print(pdu)
     return pdu
 
 

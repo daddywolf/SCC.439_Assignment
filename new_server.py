@@ -35,9 +35,9 @@ class Server:
     def server_send_message(self, pdu_dict):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        conn.sendall(json.dumps(pdu_dict).encode())
+        conn.sendall(json.dumps(pdu_dict).encode('utf-8'))
         conn.close()
-        return data.decode()
+        return data.decode('utf-8')
 
     def _init(self):
         self._server_dh = DiffieHellman()
@@ -53,23 +53,23 @@ class Server:
         conn, addr = self._server.accept()
         print('Connected by', addr)
         data = conn.recv(1024)
-        dh_1_pdu = json.loads(data.decode())
+        dh_1_pdu = json.loads(data.decode('utf-8'))
         username = dh_1_pdu['body']['user']
         print(username)
-        client_public_key = int(base64.b64decode(dh_1_pdu['body']['key']).decode())
+        client_public_key = int(base64.b64decode(dh_1_pdu['body']['key']).decode('utf-8'))
         dh_2_pdu = {'header': {'msg_type': 'dh_2', 'timestamp': time.time()},
-                    'body': {'key': base64.b64encode(str(self._public_key).encode()).decode('utf-8')}}
+                    'body': {'key': base64.b64encode(str(self._public_key).encode('utf-8')).decode('utf-8')}}
         dh_2_pdu['header']['crc'] = zlib.crc32(json.dumps(dh_2_pdu).encode('utf-8'))
-        conn.sendall(json.dumps(dh_2_pdu).encode())
+        conn.sendall(json.dumps(dh_2_pdu).encode('utf-8'))
         conn.close()
         self._server_dh.generate_shared_secret(client_public_key)
         # CALCULATE KEYS
-        directory = open('../files/directory.json', 'r')
+        directory = open('files/directory.json', 'r')
         user_list = json.load(directory)
         user_password = ""
         for i in user_list:
             if i['username'] == username:
-                user_password = i['password'].encode()
+                user_password = i['password'].encode('utf-8')
         hmac = HMAC.new(user_password, self._server_dh.shared_secret_bytes, digestmod=SHA256)
         self._enc_key = hmac.digest()
         hash = SHA256.new()
@@ -91,25 +91,25 @@ class Server:
     def _chall(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         self._random_challange = urandom(32)
-        conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode())
+        conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode('utf-8'))
         conn.close()
         return "ok"
 
     def _ack_or_nack(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challange, digestmod=SHA256)
         try:
             ct_HMAC.verify(pt)
-            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             conn.close()
             print('>>>Single CHAP OK')
             return "ok"
         except Exception as e:
-            conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode())
+            conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode('utf-8'))
             conn.close()
             print('>>>Single CHAP ERROR')
             return "error"
@@ -117,18 +117,18 @@ class Server:
     def _resp(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
-        conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
+        conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode('utf-8'))
         conn.close()
         return "ok"
 
     def _chap_end(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode()), self._key_dict)
+        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         if type == 'ack':
-            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
+            conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             print('>>>Mutual CHAP OK')
             return "Mutual CHAP OK"
         if type == 'nack':
