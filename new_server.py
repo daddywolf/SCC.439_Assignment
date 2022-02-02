@@ -32,10 +32,6 @@ class Server:
             'chap_end': {'ok': {'nxt_state': 'init', 'action': self._chap_end}}
         }
 
-    @property
-    def server(self):
-        return self._server
-
     def server_send_message(self, pdu_dict):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
@@ -47,7 +43,7 @@ class Server:
         self._server_dh = DiffieHellman()
         self._public_key = self._server_dh.public_key
         print('Server Init Successful.')
-        return True
+        return "ok"
 
     def _error(self):
         print('error')
@@ -90,7 +86,7 @@ class Server:
             'chap_secret': self._chap_secret
         }
         print('>>>Server Key Generation Successfully')
-        return True
+        return "ok"
 
     def _chall(self):
         conn, addr = self._server.accept()
@@ -99,7 +95,7 @@ class Server:
         self._random_challange = urandom(32)
         conn.sendall(json.dumps(generate_pdu('chall', self._random_challange, self._key_dict)).encode())
         conn.close()
-        return True
+        return "ok"
 
     def _ack_or_nack(self):
         conn, addr = self._server.accept()
@@ -111,12 +107,12 @@ class Server:
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode())
             conn.close()
             print('>>>Single CHAP OK')
-            return True
+            return "ok"
         except Exception as e:
             conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode())
             conn.close()
             print('>>>Single CHAP ERROR')
-            return False
+            return "error"
 
     def _resp(self):
         conn, addr = self._server.accept()
@@ -125,7 +121,7 @@ class Server:
         ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
         conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode())
         conn.close()
-        return True
+        return "ok"
 
     def _chap_end(self):
         conn, addr = self._server.accept()
@@ -137,7 +133,7 @@ class Server:
             return "Mutual CHAP OK"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
-            return False
+            return "error"
         conn.close()
 
     def event_handler(self, event):
@@ -155,9 +151,9 @@ class Server:
 if __name__ == "__main__":
     # Init Server
     server = Server(local_port=8888)
-    flag = server.event_handler('init')
-    while flag:
-        flag = server.event_handler('ok')  # dh_2
+    status = server.event_handler('init')
+    while status != 'error':
+        flag = server.event_handler(status)  # dh_2
         if flag == 'Mutual CHAP OK':
             break
     # server.init()

@@ -46,7 +46,7 @@ class Client:
         self._client_dh = DiffieHellman()
         self._public_key = self._client_dh.public_key
         print('Client Init Successful.')
-        return True
+        return "ok"
 
     # TODO 要好好想想这里如何设计
     def _error(self):
@@ -79,7 +79,7 @@ class Client:
             'chap_secret': self._chap_secret
         }
         print('>>>Client Key Generation Successfully')
-        return True
+        return "ok"
 
     def _hello(self):
         pdu = generate_pdu('hello', None, self._key_dict)
@@ -96,10 +96,10 @@ class Client:
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             print('>>>Single CHAP OK')
-            return True
+            return "ok"
         if type == 'nack':
             print('>>>Single CHAP ERROR')
-            return False
+            return "error"
 
     def _chall(self):
         self._random_challange = urandom(32)
@@ -121,10 +121,10 @@ class Client:
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             print('>>>Mutual CHAP OK')
-            return True
+            return "ok"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
-            return False
+            return "error"
 
     def _text(self):
         # TODO
@@ -149,12 +149,12 @@ if __name__ == "__main__":
     user = select_user_from_table(directory_dict)
     # Init Client
     client = Client(remote_ip='0.0.0.0', remote_port=8888)
-    client.event_handler('init')
-    flag = client.event_handler('ok', user)  # dh_1
-    ran_chall = client.event_handler('ok')  # hello
-    flag = client.event_handler('ok', ran_chall)  # resp
-    hmac = client.event_handler('ok')  # chall
-    flag = client.event_handler('ok', hmac)  # ack_or_nack
+    status = client.event_handler('init')
+    status = client.event_handler(status, user)  # dh_1
+    ran_chall = client.event_handler(status)  # hello
+    status = client.event_handler(status, ran_chall)  # resp
+    hmac = client.event_handler(status)  # chall
+    status = client.event_handler(status, hmac)  # ack_or_nack
     # client.init()
     # dh_1 = client.dh_1(user)
     # ran_chall = client.hello()
