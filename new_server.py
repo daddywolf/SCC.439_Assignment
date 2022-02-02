@@ -24,11 +24,11 @@ class Server:
             'dh_2': {'ok': {'nxt_state': 'chall', 'action': self._dh_2},
                      'error': {'nxt_state': 'end', 'action': self._error}},
             'chall': {'ok': {'nxt_state': 'ack_or_nack', 'action': self._chall},
-                      'error': {'nxt_state': 'nack', 'action': self._error}},
+                      'error': {'nxt_state': 'chall', 'action': self._error}},
             'ack_or_nack': {'ok': {'nxt_state': 'resp', 'action': self._ack_or_nack},
-                            'error': {'nxt_state': 'end', 'action': self._error}},
+                            'error': {'nxt_state': 'chall', 'action': self._error}},
             'resp': {'ok': {'nxt_state': 'chap_end', 'action': self._resp},
-                     'error': {'nxt_state': 'end', 'action': self._error}},
+                     'error': {'nxt_state': 'end', 'chall': self._error}},
             'chap_end': {'ok': {'nxt_state': 'init', 'action': self._chap_end}}
         }
 
