@@ -29,7 +29,7 @@ class Server:
             'resp': {'ok': {'nxt_state': 'chap_end', 'action': self._resp},
                      'error': {'nxt_state': 'error', 'chall': self._error}},
             'chap_end': {'ok': {'nxt_state': 'text', 'action': self._chap_end}},
-            'text': {'ok': {'nxt_state': 'text', 'action': self.text},
+            'text': {'ok': {'nxt_state': 'text', 'action': self._text},
                      'error': {'nxt_state': 'error', 'chall': self._error}},
             'error': {'ok': {'nxt_state': 'chall', 'action': self._chall},
                       'error': {'nxt_state': 'error', 'action': self._error}}
@@ -141,13 +141,13 @@ class Server:
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             print('>>>Mutual CHAP OK')
             print('>>>Receiving messages from client...')
-            return 'text'
+            return 'ok'
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return 'error'
         conn.close()
 
-    def text(self):
+    def _text(self):
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
@@ -160,7 +160,7 @@ class Server:
             print_red(f"\n<{self._username}> on <{addr[0]}:{addr[1]}> says: {pt.decode('utf-8')}")
         conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
         conn.close()
-        return 'text'
+        return 'ok'
 
     def event_handler(self, event):
         if self._current_state not in self._state_machine.keys():
@@ -183,8 +183,6 @@ if __name__ == "__main__":
     while status:
         if status == 'ok':
             status = server.event_handler(status)
-        if status == 'text':
-            status = server.text()
         if status == 'error':
             retry += 1
             print(retry)

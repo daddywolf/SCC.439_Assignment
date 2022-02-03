@@ -24,14 +24,22 @@ if __name__ == '__main__':
     server_status = server.event_handler('init')
     print("Press any key to send message...")
     inputs = [server.server, sys.stdin]
-    while 1:
+    while client_status != 'error' and server_status != 'error':
         readable, writable, exceptional = select.select(inputs, [], [])
         if server.server in readable:
-            server.event_handler('ok')
+            server_status = server.event_handler('ok')
         if sys.stdin in readable:
-            try:
-                status = client.event_handler('ok')
-            except:
-                message = input()
-                if message != "":
-                    status = client.text(message)
+            if client_status == 'ok':
+                client_status = client.event_handler('ok')
+            if client_status == 'text':
+                message = input('message>')
+                client_status = client.text(message)
+            if client_status == 'error':
+                print('error handler')
+                client_status = client.event_handler('error')
+            # try:
+            #     client_status = client.event_handler('ok')
+            # except:
+            #     message = input()
+            #     if message != "":
+            #         client_status = client.text(message)
