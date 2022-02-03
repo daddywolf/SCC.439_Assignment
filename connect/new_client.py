@@ -20,20 +20,20 @@ class Client:
         self._user = user
         self._random_challenge = None
         self._state_machine = {
-            'init': {'init': {'nxt_state': 'dh_1', 'action': self._init},
-                     'error': {'nxt_state': 'dh_1', 'action': self._error}},
-            'dh_1': {'ok': {'nxt_state': 'hello', 'action': self._dh_1},
-                     'error': {'nxt_state': 'init', 'action': self._error}},
+            'init': {'init': {'nxt_state': 'dh_1', 'action': self._init}},
+            'dh_1': {'ok': {'nxt_state': 'hello', 'action': self._dh_1}},
             'hello': {'ok': {'nxt_state': 'resp', 'action': self._hello},
-                      'error': {'nxt_state': 'hello', 'action': self._error}},
+                      'error': {'nxt_state': 'error', 'action': self._error}},
             'resp': {'ok': {'nxt_state': 'chall', 'action': self._resp},
-                     'error': {'nxt_state': 'hello', 'action': self._error}},
+                     'error': {'nxt_state': 'error', 'action': self._error}},
             'chall': {'ok': {'nxt_state': 'ack_or_nack', 'action': self._chall},
-                      'error': {'nxt_state': 'hello', 'action': self._error}},
+                      'error': {'nxt_state': 'error', 'action': self._error}},
             'ack_or_nack': {'ok': {'nxt_state': 'text', 'action': self._ack_or_nack},
-                            'error': {'nxt_state': 'hello', 'action': self._error}},
+                            'error': {'nxt_state': 'error', 'action': self._error}},
             'text': {'ok': {'nxt_state': 'text', 'action': self.text},
-                     'error': {'nxt_state': 'hello', 'action': self._error}}
+                     'error': {'nxt_state': 'error', 'action': self._error}},
+            'error': {'ok': {'nxt_state': 'chall', 'action': self._chall},
+                      'error': {'nxt_state': 'error', 'action': self._error}}
         }
 
     def client_send_message(self, pdu_dict):
@@ -52,7 +52,9 @@ class Client:
 
     # TODO 要好好想想这里如何设计
     def _error(self):
-        print('error')
+        pdu = generate_pdu('nack', None, self._key_dict)
+        ret = self.client_send_message(pdu)
+        print(ret)
 
     def _dh_1(self):
         user = self._user
@@ -126,7 +128,7 @@ class Client:
         if type == 'ack':
             print('>>>Mutual CHAP OK')
             print('>>>You can send your message now. Type "close()" to exit.')
-            return "ok"
+            return "text"
         if type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return "error"
@@ -143,13 +145,13 @@ class Client:
         pdu_dict = json.loads(ret)
         type, pt = decrypt_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
-            return "ok"
+            return "text"
         if type == 'nack':
             return "error"
 
     def event_handler(self, event, *args):
         if self._current_state not in self._state_machine.keys():
-            raise Exception(f'current state not in state list {self._current_state}')
+            raise Exception(f'current state not in state list: {self._current_state}')
         nxt_state = self._state_machine[self._current_state][event]['nxt_state']
         action = self._state_machine[self._current_state][event]['action']
         if not args:
@@ -167,12 +169,15 @@ if __name__ == "__main__":
     # Init Client
     client = Client('0.0.0.0', 8888, user)
     status = client.event_handler('init')
-    while status != 'error':
-        try:
-            status = client.event_handler(status)
-        except:
+    while status:
+        if status == 'ok':
+            status = client.event_handler('ok')
+        if status == 'text':
             message = input('message>')
             status = client.text(message)
+        if status == 'error':
+            print('error handler')
+            status = client.event_handler('error')
     # client.init()
     # dh_1 = client.dh_1(user)
     # ran_chall = client.hello()
