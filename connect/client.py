@@ -8,9 +8,8 @@ from os import urandom
 
 from Cryptodome.Hash import SHA256, HMAC
 
-from mycryptolib.directory_protection import decrypt_file_to_user_json
 from mycryptolib.lancs_DH import DiffieHellman
-from utils.basic_functions import select_user_from_table, generate_pdu, decrypt_pdu
+from utils.basic_functions import generate_pdu, parse_pdu
 
 
 class Client:
@@ -116,7 +115,7 @@ class Client:
         pdu = generate_pdu('hello', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, ran_chall = decrypt_pdu(pdu_dict, self._key_dict)
+        type, ran_chall = parse_pdu(pdu_dict, self._key_dict)
         self._ran_chall = ran_chall
         return 'ok'
 
@@ -131,7 +130,7 @@ class Client:
         pdu = generate_pdu('resp', ct_HMAC.digest(), self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        type, pt = parse_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             print('>>>Single CHAP OK')
             return "ok"
@@ -149,7 +148,7 @@ class Client:
         pdu = generate_pdu('chall', self._random_challenge, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, self._hmac = decrypt_pdu(pdu_dict, self._key_dict)
+        type, self._hmac = parse_pdu(pdu_dict, self._key_dict)
         return 'ok'
 
     def _ack_or_nack(self):
@@ -167,7 +166,7 @@ class Client:
             pdu = generate_pdu('nack', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        type, pt = parse_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             print('>>>Mutual CHAP OK')
             print('>>>You can send your message now. Type "close()" to exit.')
@@ -191,7 +190,7 @@ class Client:
             pdu = generate_pdu('text', text.encode('utf-8'), self._key_dict)
             ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = decrypt_pdu(pdu_dict, self._key_dict)
+        type, pt = parse_pdu(pdu_dict, self._key_dict)
         if type == 'ack':
             return "text"
         if type == 'nack':
@@ -214,6 +213,7 @@ class Client:
             ret = action(args)
         self._current_state = nxt_state
         return ret
+
 
 '''
 # Testing functions. It CAN be used however you don't have to. I used this to test my code before I write the main.py

@@ -10,7 +10,7 @@ from Cryptodome.Hash import SHA256, HMAC
 
 from mycryptolib.directory_protection import decrypt_file_to_user_json
 from mycryptolib.lancs_DH import DiffieHellman
-from utils.basic_functions import generate_pdu, decrypt_pdu, print_red
+from utils.basic_functions import generate_pdu, parse_pdu, print_red
 
 
 class Server:
@@ -76,7 +76,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode('utf-8'))
         conn.close()
 
@@ -131,7 +131,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         self._random_challenge = urandom(32)
         conn.sendall(json.dumps(generate_pdu('chall', self._random_challenge, self._key_dict)).encode('utf-8'))
         conn.close()
@@ -146,7 +146,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
             ct_HMAC.verify(pt)
@@ -167,7 +167,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
         conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode('utf-8'))
         conn.close()
@@ -180,7 +180,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         if type == 'ack':
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             print('>>>Mutual CHAP OK')
@@ -198,7 +198,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = decrypt_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         if pt.decode('utf-8') == 'close()':
             conn.close()
             self._server.close()
