@@ -4,7 +4,7 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Hash import HMAC, SHA256
 from Cryptodome.Util.Padding import pad, unpad
 
-from utils.config import LOG_PASSWORD, LOG_KEY, PATH, LOG_FILE
+from utils.config import LOG_PASSWORD, LOG_KEY, LOG_FILE, PATH
 
 
 class SecureLogging:
@@ -23,7 +23,7 @@ class SecureLogging:
         return ct_bytes
 
     def _log_decryption(self, data):
-        data = data.encode()
+        data = bytes(data)
         decipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
         pt = unpad(decipher.decrypt(data), AES.block_size)
         return pt.decode()
@@ -36,7 +36,32 @@ class SecureLogging:
         self._file.writelines(log_format)
         return log_format
 
+    def read_logs(self, filename):
+        self._file = open(PATH+filename, 'r')
+        count = 0
+        while 1:
+            count += 1
+            res = self._file.readline().replace("\n", "")
+            print(res)
+            print(res.split("::"))
+            if res == ['']:
+                break
+            print(res)
+            hmac = HMAC.new(LOG_PASSWORD, LOG_KEY, digestmod=SHA256)
+            hmac.update(f"{res[0]}::{res[1]}::{res[2]}::{res[3]}".encode())
+            try:
+                hmac.hexverify(res[4])
+            except ValueError:
+                print("HMAC ERROR")
+            plain_text_log = f"{res[0]}::{res[1]}::{res[2]}::{self._log_decryption(res[3])}"
+            print(plain_text_log)
+
 
 def log_to_file(level, message):
     sl = SecureLogging(LOG_FILE)
     sl.log(level, message)
+
+
+if __name__ == "__main__":
+    sl = SecureLogging(LOG_FILE)
+    sl.read_logs(LOG_FILE)

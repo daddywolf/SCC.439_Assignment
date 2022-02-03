@@ -2,17 +2,18 @@ import select
 import socket
 import sys
 
-from connect.new_client import Client
-from connect.new_server import Server
-from mycryptolib.directory_protection import decrypt_file_to_user_json
+from connect.client import Client
+from connect.server import Server
+from mycryptolib.directory_protection import decrypt_file_to_user_json, generate_public_key_and_private_key_to_files, \
+    encrypt_user_list_to_file
 from utils.basic_functions import select_user_from_table, print_yellow, print_green
 from utils.config import WELCOME
 from utils.secure_logging import log_to_file
 
 if __name__ == '__main__':
     print(WELCOME)
-    # generate_public_key_and_private_key_to_files() # If no public key and private key, mush generate it first
-    # encrypt_user_list_to_file()   # If no encrypted file, mush generate it first
+    generate_public_key_and_private_key_to_files()  # If no public key and private key, mush generate it first
+    encrypt_user_list_to_file()  # If no encrypted file, mush generate it first
     directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
     print_green("Please select YOURSELF:")
     me = select_user_from_table(directory_dict)
