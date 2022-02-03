@@ -1,9 +1,10 @@
 import select
+import socket
 import sys
 
 from connect.new_client import Client
 from connect.new_server import Server
-from utils.basic_functions import input_directory, select_user_from_table, input_port
+from utils.basic_functions import input_directory, select_user_from_table, print_yellow
 from utils.config import WELCOME
 
 if __name__ == '__main__':
@@ -12,15 +13,16 @@ if __name__ == '__main__':
     # parser.add_argument('--port', action='store', dest='port', type=int, required=True)
     # given_args = parser.parse_args()
     # port = given_args.port
-    username = input("Input username: ")
-    local_server_port = input_port()
-    print(f'Hi <{username}>! You are running a server on <0.0.0.0:{local_server_port}>')
     directory_dict = input_directory('directory.json')
-    user = select_user_from_table(directory_dict)
-    print(f"You want to send message to <{user['username']}> on <{user['ip']}:{user['port']}>.")
-    client = Client(user['ip'], user['port'], user)
+    print("Please select YOURSELF:")
+    me = select_user_from_table(directory_dict)
+    print_yellow(f'Hi <{me["username"]}>! You are running a server on <{socket.gethostname()}:{me["port"]}>')
+    print("Please select YOUR TARGET:         (CANNOT BE THE SAME AS YOUSELF!)")
+    others = select_user_from_table(directory_dict)
+    print_yellow(f"You want to send message to <{others['username']}> on <{others['ip']}:{others['port']}>.")
+    client = Client(others['ip'], others['port'], others)
     client_status = client.event_handler('init')
-    server = Server(local_server_port)
+    server = Server(me["port"])
     server_status = server.event_handler('init')
     print("Press any key to send message...")
     inputs = [server.server, sys.stdin]
@@ -37,9 +39,3 @@ if __name__ == '__main__':
             if client_status == 'error':
                 print('error handler')
                 client_status = client.event_handler('error')
-            # try:
-            #     client_status = client.event_handler('ok')
-            # except:
-            #     message = input()
-            #     if message != "":
-            #         client_status = client.text(message)

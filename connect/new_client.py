@@ -50,7 +50,6 @@ class Client:
         print('Client Init Successful.')
         return "ok"
 
-    # TODO 要好好想想这里如何设计
     def _error(self):
         pdu = generate_pdu('nack', None, self._key_dict)
         ret = self.client_send_message(pdu)

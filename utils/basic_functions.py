@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import time
 import zlib
 
@@ -11,7 +12,7 @@ from Cryptodome.Util.Padding import pad, unpad
 def input_port():
     port = input("Please enter a port to incoming connections: ")
     if not port:
-        port = 8888
+        input_port()
     port = int(port)
     if port < 1 or port > 65535:
         print("Port input error. Please try again.")
@@ -20,7 +21,7 @@ def input_port():
 
 
 def input_directory(filename):
-    directory_file = f"files/{filename}"
+    directory_file = f"{os.getcwd()}/files/{filename}"
     with open(directory_file) as file:
         directory_list = json.load(file)
     return directory_list
@@ -36,7 +37,7 @@ def select_user_from_table(dict_list):
     for i in dict_list:
         user_id += 1
         print(f"{user_id}\t\t{i['ip']}\t\t{i['port']}\t\t{i['username']}")
-    target = int(input("Please select the target (id):"))
+    target = int(input("Please select the user (id):"))
     if target < 1 or target > len(dict_list):
         print("Target input error. Please try again.")
         return select_user_from_table(dict_list)
