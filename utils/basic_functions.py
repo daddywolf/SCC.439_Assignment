@@ -1,12 +1,13 @@
 import base64
 import json
-import os
 import time
 import zlib
 
 from Cryptodome.Cipher import AES
 from Cryptodome.Hash import SHA256, HMAC
 from Cryptodome.Util.Padding import pad, unpad
+
+from utils.config import PATH
 
 
 def input_port():
@@ -21,8 +22,7 @@ def input_port():
 
 
 def input_directory(filename):
-    directory_file = f"{os.getcwd()}/files/{filename}"
-    with open(directory_file) as file:
+    with open(PATH + filename) as file:
         directory_list = json.load(file)
     return directory_list
 

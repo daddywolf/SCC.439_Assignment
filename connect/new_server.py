@@ -10,6 +10,7 @@ from Cryptodome.Hash import SHA256, HMAC
 
 from mycryptolib.lancs_DH import DiffieHellman
 from utils.basic_functions import generate_pdu, decrypt_pdu, print_red
+from utils.config import PATH
 
 
 class Server:
@@ -74,7 +75,7 @@ class Server:
         conn.close()
         self._server_dh.generate_shared_secret(client_public_key)
         # CALCULATE KEYS
-        directory = open('files/directory.json', 'r')
+        directory = open(PATH + 'directory.json', 'r')
         user_list = json.load(directory)
         for i in user_list:
             if i['username'] == username:
