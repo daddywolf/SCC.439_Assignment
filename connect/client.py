@@ -14,12 +14,17 @@ from utils.basic_functions import select_user_from_table, generate_pdu, decrypt_
 
 
 class Client:
-    def __init__(self, remote_ip, remote_port, user):
-        self._current_state = 'init'
-        self._remote_ip = remote_ip
-        self._remote_port = remote_port
+    def __init__(self, user):
+        """
+        Constructor. Initializes all required variables.
+        :param user: The user dict you selected to send messages to.
+        """
+        self._remote_ip = user['ip']
+        self._remote_port = user['port']
         self._user = user
         self._random_challenge = None
+        # Implementation of finite state machines.
+        self._current_state = 'init'
         self._state_machine = {
             'init': {'init': {'nxt_state': 'dh_1', 'action': self._init}},
             'dh_1': {'ok': {'nxt_state': 'hello', 'action': self._dh_1}},
@@ -38,6 +43,11 @@ class Client:
         }
 
     def client_send_message(self, pdu_dict):
+        """
+        This function send PDU dictionary and get the server reply.
+        :param pdu_dict: PDU dictionary
+        :return: Decoded server message
+        """
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((self._remote_ip, int(self._remote_port)))
         self._client.sendall(json.dumps(pdu_dict).encode('utf-8'))
@@ -46,28 +56,40 @@ class Client:
         return data.decode('utf-8')
 
     def _init(self):
+        """
+        This function generate the DiffieHellman object. So that the DiffieHellman key pair can be get.
+        e.g.: self._client_dh.public_key
+        :return: This function executed successfully.
+        """
         self._client_dh = DiffieHellman()
-        self._public_key = self._client_dh.public_key
         print('Client Init Successful.')
         return "ok"
 
     def _error(self):
+        """
+        This function only be used when error exists. It will send an 'nack' to the server
+        """
         pdu = generate_pdu('nack', None, self._key_dict)
         ret = self.client_send_message(pdu)
         print(ret)
 
     def _dh_1(self):
-        user = self._user
-        # DO DH KEY EXCHANGE
+        """ STEP.1: DiffieHellman
+        Do DiffieHellman Key Exchange Step1 (Client -> Server)
+        :return: This function executed successfully.
+        """
+        # Constructing client PDUs and generating CRC, then send it
         dh_1_pdu = {'header': {'msg_type': 'dh_1', 'timestamp': time.time()},
-                    'body': {'key': base64.b64encode(str(self._public_key).encode('utf-8')).decode('utf-8'),
-                             'user': user['username']}}
+                    'body': {'key': base64.b64encode(str(self._client_dh.public_key).encode('utf-8')).decode('utf-8'),
+                             'user': self._user['username']}}
         dh_1_pdu['header']['crc'] = zlib.crc32(json.dumps(dh_1_pdu).encode('utf-8'))
+        # Get the server-side PDU and get the server-side public key.
         dh_2_pdu = json.loads(self.client_send_message(dh_1_pdu))
         server_public_key = int(base64.b64decode(dh_2_pdu['body']['key']).decode('utf-8'))
+        # Perform DiffieHellman key exchange
         self._client_dh.generate_shared_secret(server_public_key)
-        # CALCULATE KEYS
-        user_password = user['password'].encode('utf-8')
+        user_password = self._user['password'].encode('utf-8')
+        # Save the generated key to the class variable. self._key_dict will be used to generate PDU and decrypt the PDU
         hmac = HMAC.new(user_password, self._client_dh.shared_secret_bytes, digestmod=SHA256)
         self._enc_key = hmac.digest()
         hash = SHA256.new()
@@ -77,16 +99,20 @@ class Client:
         self._hmac_key = hash.digest()
         hash.update(self._hmac_key)
         self._chap_secret = hash.digest()
-        self._key_dict = {
+        self._key_dict = {  # This dict is used to generate and decrypt the PDU. see utils/basic_functions.py
             'iv': self._iv,
             'enc_key': self._enc_key,
             'hmac_key': self._hmac_key,
             'chap_secret': self._chap_secret
         }
-        print('>>>Client Key Generation Successfully')
+        print('>>>Client Key Chain Generation Successfully')
         return "ok"
 
     def _hello(self):
+        """ STEP.3: Single CHAP
+        Generate the 'hello' message and get the random bytes challenge value. save the random value to self._ran_chall
+        :return: This function executed successfully.
+        """
         pdu = generate_pdu('hello', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
@@ -95,6 +121,12 @@ class Client:
         return 'ok'
 
     def _resp(self):
+        """ STEP.5: Single CHAP
+        Response to the challenge message using HMAC. Send it back then get the ACK or NACK from server
+        If ACK --> Everything is working fine. Single CHAP done.
+        If NACK --> Something is wrong. Single CHAP failed.
+        :return: This function executed successfully or not.
+        """
         ct_HMAC = HMAC.new(self._chap_secret, self._ran_chall, digestmod=SHA256)
         pdu = generate_pdu('resp', ct_HMAC.digest(), self._key_dict)
         ret = self.client_send_message(pdu)
@@ -108,6 +140,11 @@ class Client:
             return "error"
 
     def _chall(self):
+        """ STEP.7: Mutual CHAP
+        If Single CHAP is OK, then Client is going to challenge the Server.
+        Generate a random bytes challenge value then send it to the server
+        :return: This function executed successfully.
+        """
         self._random_challenge = urandom(32)
         pdu = generate_pdu('chall', self._random_challenge, self._key_dict)
         ret = self.client_send_message(pdu)
@@ -116,6 +153,12 @@ class Client:
         return 'ok'
 
     def _ack_or_nack(self):
+        """ STEP.9: Mutual CHAP
+        Receive the challenge response from the server and verify it.
+        If verify correct --> send ACK back and Mutual CHAP OK
+        If verify incorrect --> send NACK back and Mutual CHAP failed.
+        :return: This function executed successfully or not.
+        """
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
             ct_HMAC.verify(self._hmac)
@@ -134,6 +177,11 @@ class Client:
             return "error"
 
     def text(self, text):
+        """
+        Send messages to the server. use 'close()' to shut the server and client down.
+        :param text: plain text message from user input
+        :return: This function executed successfully or not.
+        """
         if text == 'close()':
             pdu = generate_pdu('close', text.encode('utf-8'), self._key_dict)
             self.client_send_message(pdu)
@@ -150,6 +198,12 @@ class Client:
             return "error"
 
     def event_handler(self, event, *args):
+        """
+        Event manipulation functions for finite state machines.
+        :param event: 'ok' or 'text' or 'error'
+        :param args: When sending message, have to use the *args to get the parameter.
+        :return: the function outcome
+        """
         if self._current_state not in self._state_machine.keys():
             raise Exception(f'current state not in state list: {self._current_state}')
         nxt_state = self._state_machine[self._current_state][event]['nxt_state']
@@ -161,13 +215,12 @@ class Client:
         self._current_state = nxt_state
         return ret
 
-
+'''
+# Testing functions. It CAN be used however you don't have to. I used this to test my code before I write the main.py
 if __name__ == "__main__":
-    # Pick User
     directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
     user = select_user_from_table(directory_dict)
-    # Init Client
-    client = Client('0.0.0.0', 8888, user)
+    client = Client(user)
     status = client.event_handler('init')
     while status:
         if status == 'ok':
@@ -178,9 +231,4 @@ if __name__ == "__main__":
         if status == 'error':
             print('error handler')
             status = client.event_handler('error')
-    # client.init()
-    # dh_1 = client.dh_1(user)
-    # ran_chall = client.hello()
-    # client.resp(ran_chall)
-    # hmac = client.chall()
-    # client.ack_or_nack(hmac)
+'''

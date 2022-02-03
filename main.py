@@ -4,33 +4,42 @@ import sys
 
 from connect.client import Client
 from connect.server import Server
-from mycryptolib.directory_protection import decrypt_file_to_user_json, generate_public_key_and_private_key_to_files, \
-    encrypt_user_list_to_file
+from mycryptolib.directory_protection import decrypt_file_to_user_json
 from utils.basic_functions import select_user_from_table, print_yellow, print_green
 from utils.config import WELCOME
 from utils.secure_logging import log_to_file
 
+"""
+    This file is the main entrance of the whole program :-)
+"""
 if __name__ == '__main__':
     print(WELCOME)
-    generate_public_key_and_private_key_to_files()  # If no public key and private key, mush generate it first
-    encrypt_user_list_to_file()  # If no encrypted file, mush generate it first
+    # If no public/private key exists, should be generate first. And then convert a user list to a encrypted file.
+    # generate_public_key_and_private_key_to_files()  # If no public key and private key, mush generate it first
+    # encrypt_user_list_to_file()  # If no encrypted file, mush generate it first
+    # Select who I am
     directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
     print_green("Please select YOURSELF:")
     me = select_user_from_table(directory_dict)
     print_yellow(f'Hi <{me["username"]}>! You are running a server on <{socket.gethostname()}:{me["port"]}>')
+    # Select who you are
     print_green("Please select YOUR TARGET:         (CANNOT BE THE SAME AS YOUSELF!)")
     others = select_user_from_table(directory_dict)
     print_yellow(f"You want to send message to <{others['username']}> on <{others['ip']}:{others['port']}>.")
-    client = Client(others['ip'], others['port'], others)
+    # create a server and a client and initialize them
+    client = Client(user=others)
     client_status = client.event_handler('init')
-    server = Server(me["port"])
+    server = Server(user=me)
     server_status = server.event_handler('init')
+    # Do select.selct to let the server and client running in one thread. Waiting for keyboard interaction
     print("Press any key to send message...")
     inputs = [server.server, sys.stdin]
     while client_status != 'error' and server_status != 'error':
-        readable, writable, exceptional = select.select(inputs, [], [])
+        readable, writable, exceptional = select.select(inputs, [], [], 25)
+        # Server actions  --> see connect/server.py
         if server.server in readable:
             server_status = server.event_handler('ok')
+        # Client actions  --> see connect/client.py
         if sys.stdin in readable:
             if client_status == 'ok':
                 client_status = client.event_handler('ok')
