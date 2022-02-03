@@ -7,8 +7,6 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Hash import SHA256, HMAC
 from Cryptodome.Util.Padding import pad, unpad
 
-from utils.config import PATH
-
 
 def input_port():
     port = input("Please enter a port to incoming connections: ")
@@ -19,12 +17,6 @@ def input_port():
         print("Port input error. Please try again.")
         input_port()
     return port
-
-
-def input_directory(filename):
-    with open(PATH + filename) as file:
-        directory_list = json.load(file)
-    return directory_list
 
 
 def select_user_from_table(dict_list):

@@ -1,5 +1,7 @@
 from Cryptodome.Hash import HMAC, SHA256
 
+from utils.config import LOG_FILE, PATH
+
 
 class VerifyLogging:
 
@@ -20,7 +22,7 @@ class VerifyLogging:
         return self._error_lines
 
     def check_order(self):
-        self._file = open(self._filename, 'r')
+        self._file = open(PATH+self._filename, 'r')
         current_timestamp = 0
         while 1:
             res = self._file.readline().replace("\n", "").split("::")
@@ -47,3 +49,9 @@ class VerifyLogging:
                 error_dict[count] = res
         self._error_count = len(error_dict)
         self._error_lines = list(error_dict.values())
+
+
+if __name__ == "__main__":
+    v = VerifyLogging()
+    v.verify(LOG_FILE, '666')
+

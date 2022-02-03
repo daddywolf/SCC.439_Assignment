@@ -3,7 +3,7 @@ import time
 
 from Cryptodome.Hash import HMAC, SHA256
 
-from utils.config import LOG_FILE
+from utils.config import LOG_FILE, PATH
 
 
 class SecureLogging:
@@ -16,11 +16,7 @@ class SecureLogging:
 
     @property
     def entry_count(self):
-        return
-
-    @entry_count.setter
-    def entry_count(self, value):
-        pass
+        return self._entry_count
 
     @property
     def filename(self):
@@ -31,8 +27,7 @@ class SecureLogging:
         self._filename = value
 
     def open(self, file_name, password):
-        path = f'{os.getcwd()}/files/{file_name}'
-        self._file = open(path, 'a')
+        self._file = open(PATH+file_name, 'a')
         self._password = password
 
     def close(self):

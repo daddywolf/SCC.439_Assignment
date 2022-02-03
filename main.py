@@ -4,16 +4,15 @@ import sys
 
 from connect.new_client import Client
 from connect.new_server import Server
-from utils.basic_functions import input_directory, select_user_from_table, print_yellow
+from mycryptolib.directory_protection import decrypt_file_to_user_json, encrypt_user_list_to_file
+from utils.basic_functions import select_user_from_table, print_yellow
 from utils.config import WELCOME
+from utils.secure_logging import log_to_file
 
 if __name__ == '__main__':
     print(WELCOME)
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--port', action='store', dest='port', type=int, required=True)
-    # given_args = parser.parse_args()
-    # port = given_args.port
-    directory_dict = input_directory('directory.json')
+    # encrypt_user_list_to_file()   # If no encrypted file, mush generated it first
+    directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
     print("Please select YOURSELF:")
     me = select_user_from_table(directory_dict)
     print_yellow(f'Hi <{me["username"]}>! You are running a server on <{socket.gethostname()}:{me["port"]}>')
@@ -35,7 +34,10 @@ if __name__ == '__main__':
                 client_status = client.event_handler('ok')
             if client_status == 'text':
                 message = input('message>')
+                log_to_file('notice', message)
                 client_status = client.text(message)
             if client_status == 'error':
                 print('error handler')
                 client_status = client.event_handler('error')
+
+

@@ -8,8 +8,9 @@ from os import urandom
 
 from Cryptodome.Hash import SHA256, HMAC
 
+from mycryptolib.directory_protection import decrypt_file_to_user_json
 from mycryptolib.lancs_DH import DiffieHellman
-from utils.basic_functions import input_directory, select_user_from_table, generate_pdu, decrypt_pdu
+from utils.basic_functions import select_user_from_table, generate_pdu, decrypt_pdu
 
 
 class Client:
@@ -163,7 +164,7 @@ class Client:
 
 if __name__ == "__main__":
     # Pick User
-    directory_dict = input_directory('directory.json')
+    directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
     user = select_user_from_table(directory_dict)
     # Init Client
     client = Client('0.0.0.0', 8888, user)

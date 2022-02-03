@@ -8,9 +8,9 @@ from os import urandom
 
 from Cryptodome.Hash import SHA256, HMAC
 
+from mycryptolib.directory_protection import decrypt_file_to_user_json
 from mycryptolib.lancs_DH import DiffieHellman
 from utils.basic_functions import generate_pdu, decrypt_pdu, print_red
-from utils.config import PATH
 
 
 class Server:
@@ -75,9 +75,8 @@ class Server:
         conn.close()
         self._server_dh.generate_shared_secret(client_public_key)
         # CALCULATE KEYS
-        directory = open(PATH + 'directory.json', 'r')
-        user_list = json.load(directory)
-        for i in user_list:
+        directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
+        for i in directory_dict:
             if i['username'] == username:
                 self._password = i['password']
                 self._username = i['username']
