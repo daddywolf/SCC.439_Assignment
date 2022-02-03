@@ -1,52 +1,42 @@
-import os
 import time
 
+from Cryptodome.Cipher import AES
 from Cryptodome.Hash import HMAC, SHA256
+from Cryptodome.Util.Padding import pad, unpad
 
-from utils.config import LOG_FILE, PATH
+from utils.config import LOG_PASSWORD, LOG_KEY, PATH, LOG_FILE
 
 
 class SecureLogging:
+    def __init__(self, filename):
+        self._file = open(PATH + filename, 'a')
+        self._hmac = HMAC.new(LOG_PASSWORD, LOG_KEY, digestmod=SHA256)
+        self._enc_key = self._hmac.digest()
+        self._hash = SHA256.new()
+        self._hash.update(self._enc_key)
+        self._iv = self._hash.digest()[:16]
 
-    def __init__(self):
-        self._entry_count = None
-        self._filename = None
-        self._file = None
-        self._password = None
+    def _log_encryption(self, data):
+        data = data.encode()
+        cipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
+        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+        return ct_bytes
 
-    @property
-    def entry_count(self):
-        return self._entry_count
-
-    @property
-    def filename(self):
-        return self._filename
-
-    @filename.setter
-    def filename(self, value):
-        self._filename = value
-
-    def open(self, file_name, password):
-        self._file = open(PATH+file_name, 'a')
-        self._password = password
-
-    def close(self):
-        if self._file:
-            self._file.close()
-        else:
-            print("no file opened")
+    def _log_decryption(self, data):
+        data = data.encode()
+        decipher = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
+        pt = unpad(decipher.decrypt(data), AES.block_size)
+        return pt.decode()
 
     def log(self, level, message):
         timestamp = int(time.time())
-        hmac = HMAC.new(self._password.encode(), digestmod=SHA256)
-        message_format = f"{timestamp}::{level}::{message}::{self._password}"
-        hmac.update(message_format.encode())
-        log_format = f"{timestamp}::{level}::{message}::{hmac.hexdigest()}\n"
+        message_format = f"{timestamp}::{level}::{message[0]['username']}::{self._log_encryption(message[1])}"
+        self._hmac.update(message_format.encode())
+        log_format = message_format + f"::{self._hmac.hexdigest()}\n"
         self._file.writelines(log_format)
         return log_format
 
 
 def log_to_file(level, message):
-    sl = SecureLogging()
-    sl.open(LOG_FILE, '666')
+    sl = SecureLogging(LOG_FILE)
     sl.log(level, message)
