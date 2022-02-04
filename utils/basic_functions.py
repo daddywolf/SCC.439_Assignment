@@ -76,8 +76,8 @@ def parse_pdu(pdu_dict, key_dict):
     if pdu_dict['body']:
         ct_bytes = base64.b64decode(pdu_dict['body'])
         decipher = AES.new(key_dict['enc_key'], AES.MODE_CBC, key_dict['iv'])
-        pt = unpad(decipher.decrypt(ct_bytes), AES.block_size)
-        return pdu_dict['header']['msg_type'], pt
+        plain_text = unpad(decipher.decrypt(ct_bytes), AES.block_size)
+        return pdu_dict['header']['msg_type'], plain_text
     else:
         return pdu_dict['header']['msg_type'], None
 

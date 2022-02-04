@@ -24,7 +24,7 @@ class Server:
         self._user = user
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(5)
-        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Re-use the server socket when user types 'close()'
         self._server.bind((self._local_ip, int(self._local_port)))
         self._server.listen(1)
         self._random_challenge = None
@@ -78,7 +78,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         conn.sendall(json.dumps(generate_pdu('nack', None, self._key_dict)).encode('utf-8'))
         conn.close()
 
@@ -133,7 +133,7 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         self._random_challenge = urandom(32)
         conn.sendall(json.dumps(generate_pdu('chall', self._random_challenge, self._key_dict)).encode('utf-8'))
         conn.close()
@@ -148,10 +148,10 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
-            ct_HMAC.verify(pt)
+            ct_HMAC.verify(plain_text)
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             conn.close()
             print('>>>Single CHAP OK')
@@ -169,8 +169,8 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        ct_HMAC = HMAC.new(self._chap_secret, pt, digestmod=SHA256)
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        ct_HMAC = HMAC.new(self._chap_secret, plain_text, digestmod=SHA256)
         conn.sendall(json.dumps(generate_pdu('resp', ct_HMAC.digest(), self._key_dict)).encode('utf-8'))
         conn.close()
         return 'ok'
@@ -182,13 +182,13 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        if type == 'ack':
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        if msg_type == 'ack':
             conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
             print('>>>Mutual CHAP OK')
             print('>>>Receiving messages from client...')
             return 'ok'
-        if type == 'nack':
+        if msg_type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return 'error'
         conn.close()
@@ -200,14 +200,14 @@ class Server:
         """
         conn, addr = self._server.accept()
         data = conn.recv(1024)
-        type, pt = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        if pt.decode('utf-8') == 'close()':
+        msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
+        if plain_text.decode('utf-8') == 'close()':
             conn.close()
             self._server.close()
             print(">>>Bye")
             sys.exit(0)
         else:
-            print_red(f"\n<{self._username}> on <{addr[0]}:{addr[1]}> says: {pt.decode('utf-8')}")
+            print_red(f"\n<{self._username}> on <{addr[0]}:{addr[1]}> says: {plain_text.decode('utf-8')}")
         conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
         conn.close()
         return 'ok'

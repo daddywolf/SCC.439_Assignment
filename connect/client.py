@@ -17,8 +17,8 @@ class Client:
         Constructor. Initializes all required variables.
         :param user: The user dict you selected to send messages to.
         """
-        self._remote_ip = user['ip']
-        self._remote_port = user['port']
+        self._remote_ip = user['ip']  # Get the ip from the user dict to send messages
+        self._remote_port = user['port']  # Get the port from the user dict to send messages
         self._user = user
         self._random_challenge = None
         # Implementation of finite state machines.
@@ -115,8 +115,8 @@ class Client:
         pdu = generate_pdu('hello', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, ran_chall = parse_pdu(pdu_dict, self._key_dict)
-        self._ran_chall = ran_chall
+        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)
+        self._ran_chall = plain_text
         return 'ok'
 
     def _resp(self):
@@ -130,11 +130,11 @@ class Client:
         pdu = generate_pdu('resp', ct_HMAC.digest(), self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = parse_pdu(pdu_dict, self._key_dict)
-        if type == 'ack':
+        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)
+        if msg_type == 'ack':
             print('>>>Single CHAP OK')
             return "ok"
-        if type == 'nack':
+        if msg_type == 'nack':
             print('>>>Single CHAP ERROR')
             return "error"
 
@@ -148,7 +148,7 @@ class Client:
         pdu = generate_pdu('chall', self._random_challenge, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, self._hmac = parse_pdu(pdu_dict, self._key_dict)
+        msg_type, self._hmac = parse_pdu(pdu_dict, self._key_dict)
         return 'ok'
 
     def _ack_or_nack(self):
@@ -166,12 +166,12 @@ class Client:
             pdu = generate_pdu('nack', None, self._key_dict)
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = parse_pdu(pdu_dict, self._key_dict)
-        if type == 'ack':
+        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)
+        if msg_type == 'ack':
             print('>>>Mutual CHAP OK')
             print('>>>You can send your message now. Type "close()" to exit.')
             return "text"
-        if type == 'nack':
+        if msg_type == 'nack':
             print('>>>Mutual CHAP ERROR')
             return "error"
 
@@ -190,10 +190,10 @@ class Client:
             pdu = generate_pdu('text', text.encode('utf-8'), self._key_dict)
             ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        type, pt = parse_pdu(pdu_dict, self._key_dict)
-        if type == 'ack':
+        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)
+        if msg_type == 'ack':
             return "text"
-        if type == 'nack':
+        if msg_type == 'nack':
             return "error"
 
     def event_handler(self, event, *args):

@@ -11,6 +11,15 @@ from utils.secure_logging import log_to_file
 
 """
     This file is the main entrance of the whole program :-)
+    You should run this file using 2 different terminals, and select 2 different users. Thus they can contact each other. 
+    E.g.: On terminal 1: select 1 and 2; On terminal 2: select 2 and 1.
+    Steps:
+    1. Show Welcome message. If no public/private keys, then generate them. If no encrypted directory file, generate it.
+    2. Ask the user to select themself.
+    3. Ask the user to select a user they want to send messages to.
+    4. If the user types something, then do DH key exchange and CHAP. When finished, the user can send messages.
+    5. If the user types 'close()', close the server socket and ask the user to select a new user to send messages to.
+    6. back to step 3.
 """
 if __name__ == '__main__':
     print(WELCOME)
@@ -48,7 +57,7 @@ if __name__ == '__main__':
                     message = input()
                     log_to_file('message', (me, message))  # put user's name and its message to secure_log.log
                     client_status = client.text(message)
-                    if message == 'close()':  # If user typed 'close()', then close the local server socket and ask user to RE-SELECT a new user to send message
+                    if message == 'close()':  # If user types 'close()', then close the local server socket and ask user to RE-SELECT a new user to send message
                         server.server.close()
                         break
                 if client_status == 'error':
