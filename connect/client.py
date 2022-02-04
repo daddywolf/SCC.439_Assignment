@@ -48,6 +48,7 @@ class Client:
         :return: Decoded server message
         """
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._client.settimeout(5)
         self._client.connect((self._remote_ip, int(self._remote_port)))
         self._client.sendall(json.dumps(pdu_dict).encode('utf-8'))
         data = self._client.recv(1024)
