@@ -26,9 +26,9 @@ def select_user_from_table(dict_list):
     target = int(input("Please select the user (id):"))
     if target < 1 or target > len(dict_list):
         print("Target input error. Please try again.")
-        return select_user_from_table(dict_list)
+        return select_user_from_table(dict_list)  # Let the user select again
     else:
-        return dict_list[target - 1]
+        return dict_list[target - 1]  # return a user dict
 
 
 def generate_pdu(msg_type, data, key_dict):
@@ -46,11 +46,11 @@ def generate_pdu(msg_type, data, key_dict):
         ct_bytes = cipher.encrypt(pad(data, AES.block_size))
         body = base64.b64encode(ct_bytes).decode('utf-8')
     pdu = {'header': {'msg_type': msg_type, 'timestamp': time.time(), 'crc': 0x00}, 'body': body,
-           'security': {'hmac': {'type': 'SHA256', 'val': 0x00}, 'enc_type': 'AES256-CBC'}}
-    ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)
+           'security': {'hmac': {'type': 'SHA256', 'val': 0x00}, 'enc_type': 'AES256-CBC'}}  # Construct PDU dict
+    ct_HMAC = HMAC.new(key_dict['hmac_key'], json.dumps(pdu).encode('utf-8'), digestmod=SHA256)  # Generate the HMAC
     pdu['security']['hmac']['val'] = base64.b64encode(ct_HMAC.digest()).decode('utf-8')
-    pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))
-    print_green(pdu)
+    pdu['header']['crc'] = zlib.crc32(json.dumps(pdu).encode('utf-8'))  # Generate the CRC
+    print_green(pdu)  # Display the PDU dict in green for troubleshooting
     return pdu
 
 
@@ -62,21 +62,21 @@ def parse_pdu(pdu_dict, key_dict):
     :param key_dict: Because I extracted this function from the client/server class to reduce code duplication, I need to pass in a dictionary of keys.
     :return: msg_type: PDU message type in the header, data: plain text message data
     """
-    crc_other = pdu_dict['header'].pop('crc')
+    crc_other = pdu_dict['header'].pop('crc')  # Extract CRC
     pdu_dict['header']['crc'] = 0x00
     crc_my = zlib.crc32(json.dumps(pdu_dict).encode('utf-8'))
-    assert crc_my == crc_other
-    hmac_other = pdu_dict['security']['hmac'].pop('val')
+    assert crc_my == crc_other  # Verify CRC
+    hmac_other = pdu_dict['security']['hmac'].pop('val')  # Extract HMAC
     pdu_dict['security']['hmac']['val'] = 0x00
     hmac_my = HMAC.new(key_dict['hmac_key'], json.dumps(pdu_dict).encode('utf-8'), digestmod=SHA256)
     try:
-        hmac_my.verify(base64.b64decode(hmac_other))
+        hmac_my.verify(base64.b64decode(hmac_other))  # Verify HMAC
     except Exception as e:
         print('       HMAC OK: False')
     if pdu_dict['body']:
         ct_bytes = base64.b64decode(pdu_dict['body'])
         decipher = AES.new(key_dict['enc_key'], AES.MODE_CBC, key_dict['iv'])
-        plain_text = unpad(decipher.decrypt(ct_bytes), AES.block_size)
+        plain_text = unpad(decipher.decrypt(ct_bytes), AES.block_size)  # Decrypt the cipher text to plain text
         return pdu_dict['header']['msg_type'], plain_text
     else:
         return pdu_dict['header']['msg_type'], None

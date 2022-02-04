@@ -161,12 +161,12 @@ class Client:
         ct_HMAC = HMAC.new(self._chap_secret, self._random_challenge, digestmod=SHA256)
         try:
             ct_HMAC.verify(self._hmac)
-            pdu = generate_pdu('ack', None, self._key_dict)
+            pdu = generate_pdu('ack', None, self._key_dict)  # If HMAC verify success, send back ACK
         except Exception as e:
-            pdu = generate_pdu('nack', None, self._key_dict)
+            pdu = generate_pdu('nack', None, self._key_dict)  # If HMAC verify failed, send back NCK
         ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
-        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)
+        msg_type, plain_text = parse_pdu(pdu_dict, self._key_dict)  # If received message is ACK, means Mutual CHAP OK, and vice versa
         if msg_type == 'ack':
             print('>>>Mutual CHAP OK')
             print('>>>You can send your message now. Type "close()" to exit.')
@@ -181,12 +181,12 @@ class Client:
         :param text: plain text message from user input
         :return: This function executed successfully or not.
         """
-        if text == 'close()':
+        if text == 'close()':  # If the client sends a close(), it notifies the server to close the program.
             pdu = generate_pdu('close', text.encode('utf-8'), self._key_dict)
             self.client_send_message(pdu)
             print(">>>Bye")
             return 'init'
-        else:
+        else:  # Send messages
             pdu = generate_pdu('text', text.encode('utf-8'), self._key_dict)
             ret = self.client_send_message(pdu)
         pdu_dict = json.loads(ret)
@@ -213,22 +213,3 @@ class Client:
             ret = action(args)
         self._current_state = nxt_state
         return ret
-
-
-'''
-# Testing functions. It CAN be used however you don't have to. I used this to test my code before I write the main.py
-if __name__ == "__main__":
-    directory_dict = decrypt_file_to_user_json('encrypted_directory.bin')
-    user = select_user_from_table(directory_dict)
-    client = Client(user)
-    status = client.event_handler('init')
-    while status:
-        if status == 'ok':
-            status = client.event_handler('ok')
-        if status == 'text':
-            message = input('message>')
-            status = client.text(message)
-        if status == 'error':
-            print('error handler')
-            status = client.event_handler('error')
-'''

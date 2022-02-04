@@ -24,7 +24,7 @@ class Server:
         self._user = user
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(5)
-        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Re-use the server socket when user types 'close()'
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Re-use the server socket when user types 'close()'
         self._server.bind((self._local_ip, int(self._local_port)))
         self._server.listen(1)
         self._random_challenge = None
@@ -201,12 +201,12 @@ class Server:
         conn, addr = self._server.accept()
         data = conn.recv(1024)
         msg_type, plain_text = parse_pdu(json.loads(data.decode('utf-8')), self._key_dict)
-        if plain_text.decode('utf-8') == 'close()':
+        if plain_text.decode('utf-8') == 'close()':  # If the client sends a close(), shutdown the program
             conn.close()
             self._server.close()
             print(">>>Bye")
             sys.exit(0)
-        else:
+        else:  # receive messages and display to user using red color.
             print_red(f"\n<{self._username}> on <{addr[0]}:{addr[1]}> says: {plain_text.decode('utf-8')}")
         conn.sendall(json.dumps(generate_pdu('ack', None, self._key_dict)).encode('utf-8'))
         conn.close()
@@ -228,22 +228,3 @@ class Server:
         if ret == 'ok':
             self._current_state = nxt_state
         return ret
-
-
-'''
-# Testing functions. It CAN be used however you don't have to. I used this to test my code before I write the main.py
-if __name__ == "__main__":
-    server = Server({'ip': '0.0.0.0', 'port': 8888})
-    status = server.event_handler('init')
-    retry = 0
-    while status:
-        if status == 'ok':
-            status = server.event_handler(status)
-        if status == 'error':
-            retry += 1
-            print(retry)
-            if retry >= 3:
-                sys.exit()
-            print('error handler')
-            status = server.event_handler('error')
-'''
