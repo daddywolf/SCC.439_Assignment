@@ -6,7 +6,7 @@
 
     Steps:
     1. Show Welcome message. If no public/private keys, then generate them. If no encrypted directory file, generate it.
-    2. Ask the user to select themself.
+    2. Ask the user to select themselves.
     3. Ask the user to select a user they want to send messages to.
     4. If the user types something, then do DH key exchange and CHAP. When finished, the user can send messages.
     5. If the user types 'close()', close the server socket and ask the user to select a new user to send messages to.
@@ -24,8 +24,8 @@ SCC.439_Assignment:
 │
 ├─files
 │      encrypted_directory.bin      # Encrypted User Directory File
-│      private_key.pem              # Private Key File
-│      public_key.pem               # Public Key File
+│      private_key.pem              # Private Key File to decrypt encrypted_directory.bin
+│      public_key.pem               # Public Key File to encrypt user list to encrypted_directory.bin 
 │      secure_log.log               # Log file with Encrypted messages and HMACs
 │
 ├─mycryptolib
@@ -40,7 +40,7 @@ SCC.439_Assignment:
 
 ## Vulnerabilities
 1. Buffer Overflow Attack occurs when a user tries to send a large message at once. This can lead to hackers trying to get information that shouldn't be displayed in the first place. It is even possible to steal the key from memory.
-2. The public key and the private key should be stored securely. Failing to manage these keys can lead to severe data leakage. Using key management hardware to store these keys may be a solution.
+2. The public key and the private key should be stored securely. Failing to manage these keys can lead to severe user data leakage (password, ip and ports). Using key management hardware to store these keys may be a solution.
 3. Log Password and Log key in config.py should be stored securely. Failed to manage the password and the key, hackers can calculate the enc_key and iv very easily. Thus, all messages in the log file can be decrypted.
 4. Some exceptions failed to be handled because of the time limit. Exceptions during program operation can weaken the availability of the program.
 5. In the very unlikely event that a CRC may collide This means that two different strings generate the same CRC. This means that it is not possible to identify whether information has been tampered with during transmission.
