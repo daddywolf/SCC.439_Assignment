@@ -42,7 +42,7 @@ if __name__ == '__main__':
         server = Server(user=me)
         server_status = server.event_handler('init')
         # Do select.selct to let the server and client running in one thread. Waiting for keyboard interaction
-        print("Press any key to send message...")
+        print("Enter your message and press enter...")
         inputs = [server.server, sys.stdin]
         while client_status != 'error' and server_status != 'error':
             readable, writable, exceptional = select.select(inputs, [], [], 25)
