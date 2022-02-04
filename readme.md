@@ -10,7 +10,7 @@
     1. Show Welcome message. If no public/private keys, then generate them. If no encrypted directory file, generate it.
     2. Ask the user to select themselves.
     3. Ask the user to select a user they want to send messages to.
-    4. If the user types something, then do DH key exchange and CHAP. When finished, the user can send messages.
+    4. User type a message then press enter. Then do DH key exchange and CHAP. When finished, the user can other send messages.
     5. If the user types 'close()', close the server socket and ask the user to select a new user to send messages to.
     6. back to step 3.
 
