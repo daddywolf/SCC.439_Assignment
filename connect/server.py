@@ -24,6 +24,7 @@ class Server:
         self._user = user
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(5)
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._server.bind((self._local_ip, int(self._local_port)))
         self._server.listen(1)
         self._random_challenge = None

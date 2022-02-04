@@ -1,7 +1,6 @@
 import base64
 import json
 import socket
-import sys
 import time
 import zlib
 from os import urandom
@@ -186,7 +185,7 @@ class Client:
             pdu = generate_pdu('close', text.encode('utf-8'), self._key_dict)
             self.client_send_message(pdu)
             print(">>>Bye")
-            sys.exit(0)
+            return 'init'
         else:
             pdu = generate_pdu('text', text.encode('utf-8'), self._key_dict)
             ret = self.client_send_message(pdu)
