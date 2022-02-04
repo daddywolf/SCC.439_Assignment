@@ -1,5 +1,7 @@
 # SCC.439_Assignment
 
+#### Zhipeng Jiang, Student ID: 35864313
+
 ## Instructions
 1. On the SCC.439 VM, open 2 Terminals and type this to each: `source /opt/venv-scc-439/bin/activate` to activate the Python Virtual Environment.
 2. Run `python main.py` on each terminal.
